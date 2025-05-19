@@ -1,0 +1,13 @@
+.env
+composer.lock
+Public/files
+Public/site
+Public/admin/css
+Public/admin/js
+Public/admin/files
+Public/admin/js
+Public/admin/fonts
+Public/admin/lang
+Public/admin/lib
+Logs/app.log
+vendor/
