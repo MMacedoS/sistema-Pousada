@@ -3,19 +3,19 @@
 namespace App\Repositories\Entities\User;
 
 use App\Config\Database;
+use App\Config\SingletonInstance;
 use App\Models\User\UsuarioRecuperarSenha;
 use App\Repositories\Contracts\User\IUsuarioRecuperarSenhaRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Services\EmailService;
 use App\Utils\LoggerHelper;
 
-class UsuarioRecuperarSenhaRepository implements IUsuarioRecuperarSenhaRepository {
+class UsuarioRecuperarSenhaRepository extends SingletonInstance implements IUsuarioRecuperarSenhaRepository {
     const CLASS_NAME = UsuarioRecuperarSenha::class;
     const TABLE = 'usuario_recuperar_senha';
     
     use FindTrait;
-    protected $conn;
-    protected $model;
+
     private $emailService;
     private $usuarioRepository;
 
@@ -23,7 +23,7 @@ class UsuarioRecuperarSenhaRepository implements IUsuarioRecuperarSenhaRepositor
         $this->conn = Database::getInstance()->getConnection();
         $this->model = new UsuarioRecuperarSenha();
         $this->emailService = new EmailService();        
-        $this->usuarioRepository = new UsuarioRepository();
+        $this->usuarioRepository = UsuarioRepository::getInstance();
     }
 
     public function create($user_email)
