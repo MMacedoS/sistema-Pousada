@@ -66,16 +66,16 @@
                          <!-- <img src="<?=$_ENV['URL_PREFIX_APP'] . '/Public' . @$_SESSION['files']->path?>" class="rounded-2 img-3x" alt="Perfil" /> -->
                         <div class="ms-2 text-truncate d-lg-block d-none text-white">
                           <span class="d-flex opacity-50 small">
-                            <?=@$_SESSION['user']->nome?>
+                            <?=$this->userLogged()->name?>
                           </span>
                           <span>
-                          <?=@$_SESSION['user']->email?>
+                          <?=$this->userLogged()->email?>
                           </span>
                         </div>
                       </a>
                       <div class="dropdown-menu dropdown-menu-end">
                         <div class="header-action-links">
-                          <a class="dropdown-item" href="/perfil/<?=@$_SESSION['user']->id?>"><i
+                          <a class="dropdown-item" href="/perfil/<?=$this->userLogged()->id?>"><i
                               class="icon-user border border-primary text-primary"></i>Perfil</a>
                           <!-- <a class="dropdown-item" href="settings.html"><i
                               class="icon-settings border border-danger text-danger"></i>Settings</a> -->

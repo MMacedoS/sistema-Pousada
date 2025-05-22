@@ -1,7 +1,13 @@
 <?php
  namespace App\Repositories\Traits;
- 
+
+use PDO;
+
 trait FindTrait{
+    
+    protected PDO $conn;
+    protected $model;
+
     public function findById(int $id)
     {
         $stmt = $this->conn->prepare("SELECT * FROM " . self::TABLE . " where id = :id");

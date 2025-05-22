@@ -3,23 +3,21 @@
 namespace App\Repositories\Entities\File;
 
 use App\Config\Database;
+use App\Config\SingletonInstance;
 use App\Models\File\Arquivo;
 use App\Repositories\Contracts\File\IArquivoRepository;
 use App\Repositories\Traits\FindTrait;
 
-class ArquivoRepository implements IArquivoRepository {
-
+class ArquivoRepository extends SingletonInstance implements IArquivoRepository 
+{
     const CLASS_NAME = Arquivo::class;
     const TABLE = 'arquivos';
 
     use FindTrait;
 
-    protected $conn;
-    protected $model;
-
     public function __construct(){
-        $this->conn = Database::getInstance()->getConnection();
         $this->model = new Arquivo();
+        $this->conn = Database::getInstance()->getConnection();
     }
 
     public function allFiles(array $params = []){

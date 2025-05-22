@@ -7,6 +7,7 @@ use App\Http\Request\Request;
 class Router {
     protected $routers = [];    
     protected $auth = null; 
+    public $userLogado;
 
     public function create(string $method, string $path, callable $callback, ?Auth $auth) {
         $normalizedPath = $this->normalizePath($path);
@@ -31,7 +32,7 @@ class Router {
                 if (preg_match($pattern, $normalizedRequestUri, $matches)) {
                     // Verifica autenticação
                     if (!is_null($route['auth']) && !$route['auth']->check()) {
-                        return $this->view('admin/login/login', ['message' => 'Deslogado', 'danger' => true]);
+                        return $this->view('Login/index', ['message' => 'Deslogado', 'danger' => true]);
                     }
 
                     // Executa o callback
@@ -65,5 +66,11 @@ class Router {
         
         header("Location: $url");
         exit();
+    }
+
+    public function userLogged()
+    {
+        $session = new Session();
+        return $session->get('user');
     }
 }

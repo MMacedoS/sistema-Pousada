@@ -1,6 +1,6 @@
 <?php
  
-namespace App\Controllers\v1\Traits;
+namespace App\Http\Controllers\v1\Traits;
 
 trait GenericTrait {
     public function sumAbsences($frequencias)
@@ -70,5 +70,13 @@ trait GenericTrait {
         $slug = trim($slug, '-');
         
         return $slug;
+    }
+
+    public function responseJson($dados, int $status = 200)
+    {
+        http_response_code($status);
+        header('Content-Type: application/json');
+        echo json_encode($dados);
+        exit();
     }
 }

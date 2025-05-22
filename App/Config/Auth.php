@@ -2,9 +2,8 @@
 
 namespace App\Config;
 
-use App\Repositories\Balance\CaixaRepository;
-use App\Repositories\File\ArquivoRepository;
-use App\Repositories\Permission\PermissaoRepository;
+use App\Repositories\Entities\File\ArquivoRepository;
+use App\Repositories\Entities\Permission\PermissaoRepository;
 use Firebase\JWT\JWT;
 
 class Auth {

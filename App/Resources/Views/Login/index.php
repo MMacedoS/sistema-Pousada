@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="ie=edge">
         <title><?=$_ENV['APP_NAME']?></title>
-        <link rel="shortcut icon" href="<?=$_ENV['URL_PREFIX_APP']?>/Public/admin/assets/images/ico-geeduc.png"/>
+        <link rel="shortcut icon" href="<?=$_ENV['URL_PREFIX_APP']?>/Public/admin/assets/images/logo-dark-rm-bg.png"/>
             <!-- *************
                 ************ CSS Files *************
             ************* -->
@@ -36,7 +36,7 @@
 				<form class="login100-form validate-form" method="POST" action="/login">
                     <span class="login100-form-title p-b-43">
                         <a class="brand" href="/">
-                            <img class="brand-logo-dark" src="<?=$_ENV['URL_PREFIX_APP']?>/Public/site/sind/unooba-sem-fundo.png" alt="" width="100"/>
+                            <img class="brand-logo-dark" src="<?=$_ENV['URL_PREFIX_APP']?>/Public/admin/assets/images/logo-dark-rm-bg.png" alt="" width="100"/>
                         </a>
 					</span>	
                     <span class="login100-form-title p-b-43">

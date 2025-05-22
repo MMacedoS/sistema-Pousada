@@ -1,3 +1,3 @@
 <?php
 
-$router->create("GET", "/dashboard", [$dashboardController, "index"], null);
+$router->create("GET", "/dashboard", [$dashboardController, "index"], $auth);
