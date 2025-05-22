@@ -45,4 +45,7 @@
 
         <div class="app-body">
             <div class="container">
+    <?php
+        echo alertaBootstrap();
+    ?>
     
