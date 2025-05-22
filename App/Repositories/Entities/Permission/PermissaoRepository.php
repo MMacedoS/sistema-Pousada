@@ -3,14 +3,14 @@
 namespace App\Repositories\Entities\Permission;
 
 use App\Config\Database;
+use App\Config\SingletonInstance;
 use App\Models\Permission\Permissao;
+use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Traits\FindTrait;
 
-class PermissaoRepository {
+class PermissaoRepository extends SingletonInstance implements IPermissaoRepository{
     const CLASS_NAME = Permissao::class;
     const TABLE = 'permissao';
-    protected $conn;
-    protected $model;
     
     use FindTrait;
 
@@ -19,7 +19,7 @@ class PermissaoRepository {
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    public function all()
+    public function all(array $params = [])
     {
         $stmt = $this->conn->query("SELECT * FROM " . self::TABLE . " order by name ASC");
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);        

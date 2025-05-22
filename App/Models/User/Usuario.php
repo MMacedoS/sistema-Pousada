@@ -11,12 +11,14 @@ class Usuario
     public $id;
     public ?string $uuid;
     public ?string $code;
-    public ?string $nome;
+    public ?string $name;
     public ?string $email; 
     public ?string $arquivo_id;
-    public ?string $senha;
-    public $ativo;
-    public ?string $acesso;
+    public ?string $password;
+    public ?string $send_access;
+    public ?string $access;
+    public $pessoa_fisica;
+    public $active;
     public $created_at;
     public $updated_at;
 
@@ -27,12 +29,12 @@ class Usuario
         $user = new Usuario();
         $user->id = $data['id'] ?? null;
         $user->uuid = $data['uuid'] ?? $this->generateUUID();
-        $user->nome = $data['name'];
+        $user->name = $data['name'];
         $user->email = $data['email'];
-        $user->acesso = $data['acesso'];
-        $user->ativo = $data['active'] ?? 1;
+        $user->access = $data['access'];
+        $user->active = $data['active'] ?? 1;
 
-        $user->senha = $forceNewPassword
+        $user->password = $forceNewPassword
             ? $this->generatePassword($data)
             : $data['existing_password'];
 
@@ -44,12 +46,12 @@ class Usuario
 
     public function update(array $data, Usuario $usuario, bool $forceNewPassword = false): Usuario
     {
-        $usuario->nome = $data['name'] ?? $usuario->nome;
+        $usuario->name = $data['name'] ?? $usuario->name;
         $usuario->email = $data['email'] ?? $usuario->email;
-        $usuario->acesso = $data['acesso'] ?? $usuario->acesso;
-        $usuario->ativo = $data['active'] ?? $usuario->ativo;
-        $usuario->senha = $data['password'] ?? $usuario->senha;
-        $usuario->senha = $forceNewPassword
+        $usuario->access = $data['access'] ?? $usuario->access;
+        $usuario->active = $data['active'] ?? $usuario->active;
+        $usuario->password = $data['password'] ?? $usuario->password;
+        $usuario->password = $forceNewPassword
             ? $this->generatePassword($data)
             : $data['existing_password'];
 

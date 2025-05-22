@@ -30,7 +30,7 @@ if (!function_exists('reservaFilteredById')) {
 
 if (!function_exists('hasPermission')) {    
     function hasPermission($permissio_name) {
-        $my_permissions = $_SESSION['my_permissions'];
+        $my_permissions = $_SESSION['my_permissions'] ?? [];
         foreach ($my_permissions as $permission) {
             if ($permission->name === $permissio_name) {
                 return true;
@@ -153,4 +153,36 @@ if (!function_exists('dd')) {
         echo "<pre>" . var_dump($value) . "</pre>";
         die;
     }
+}
+
+if (!function_exists('alertaBootstrap')) {
+    function alertaBootstrap()
+    {
+        $html = "<!-- Row end -->\n";
+
+        if (!isset($_GET['error'])) {
+            return '';
+        }
+
+        $error = $_GET['error'];
+
+        $mensagens = [
+            '401' => 'Acesso não autorizado. Verifique suas credenciais.',
+            '422' => 'Erro de validação. Verifique os dados informados.',
+            '500' => 'Erro interno no servidor. Tente novamente mais tarde.'
+        ];
+
+        if (array_key_exists($error, $mensagens)) {
+            $html .= <<<HTML
+            <div class="alert border border-danger alert-dismissible fade show text-danger" role="alert">
+            <b>Erro {$error}:</b> {$mensagens[$error]}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+
+            HTML;
+        }
+
+        return $html;
+    }
+
 }

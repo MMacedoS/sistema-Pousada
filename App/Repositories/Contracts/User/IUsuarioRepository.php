@@ -32,5 +32,7 @@ interface IUsuarioRepository {
 
     public function findByUuid(string $uuid);
 
+    public function active(int $id);
+
     public function findById(int $id);
 }

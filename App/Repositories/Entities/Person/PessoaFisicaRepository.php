@@ -3,18 +3,17 @@
 namespace App\Repositories\Entities\Person;
 
 use App\Config\Database;
+use App\Config\SingletonInstance;
 use App\Models\Person\PessoaFisica;
 use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 
-class PessoaFisicaRepository implements IPessoaFisicaRepository {
+class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaRepository {
     const CLASS_NAME = PessoaFisica::class;
     const TABLE = 'pessoa_fisica';
     
     use FindTrait;
-    protected $conn;
-    protected $model;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getConnection();
@@ -67,32 +66,28 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
                 SET 
                     uuid = :uuid,
                     usuario_id = :usuario_id,
-                    nome = :nome,
-                    nome_social = :nome_social,
+                    name = :nome,
+                    social_name = :nome_social,
                     email = :email,
-                    data_nascimento = :data_nascimento,
-                    cpf = :cpf,
-                    rg = :rg,
-                    nome_mae = :nome_mae,
-                    nome_pai = :nome_pai,
-                    telefone = :telefone,
-                    endereco = :endereco
+                    birthday = :data_nascimento,
+                    doc = :doc,
+                    type_doc = :type_doc,
+                    phone = :telefone,
+                    address = :endereco
                     "
             );
     
             $create = $stmt->execute([
                 ':uuid' => $pessoa_fisica->uuid,
                 ':usuario_id' => $pessoa_fisica->usuario_id,
-                ':nome' => $pessoa_fisica->nome,
-                ':nome_social' => $pessoa_fisica->nome_social,
+                ':nome' => $pessoa_fisica->name,
+                ':nome_social' => $pessoa_fisica->social_name,
                 ':email' => $pessoa_fisica->email,
-                ':data_nascimento' => $pessoa_fisica->data_nascimento,
-                ':nome_pai' => $pessoa_fisica->nome_pai,
-                ':nome_mae' => $pessoa_fisica->nome_mae,
-                ':telefone' => $pessoa_fisica->telefone,
-                ':rg' => $pessoa_fisica->rg,
-                ':endereco' => $pessoa_fisica->endereco,
-                ':cpf' => $pessoa_fisica->cpf
+                ':data_nascimento' => $pessoa_fisica->birthday,
+                ':telefone' => $pessoa_fisica->phone,
+                ':type_doc' => $pessoa_fisica->type_doc,
+                ':endereco' => $pessoa_fisica->address,
+                ':doc' => $pessoa_fisica->doc
             ]);
             
             if (!$create) {
@@ -106,7 +101,7 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
         } finally {          
             Database::getInstance()->closeConnection();
         }
-    }    
+    } 
 
     public function update(array $data, int $id)
     {
@@ -127,16 +122,14 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
                 "UPDATE " . self::TABLE . "
                     set 
                     usuario_id = :usuario_id,
-                    nome = :nome,
-                    nome_social = :nome_social,
+                    name = :name,
+                    social_name = :social_name,
                     email = :email,
-                    data_nascimento = :data_nascimento,
-                    cpf = :cpf,
-                    rg = :rg,
-                    nome_mae = :nome_mae,
-                    nome_pai = :nome_pai,
-                    telefone = :telefone,
-                    endereco = :endereco,
+                    birthday = :birthday,
+                    doc = :doc,
+                    type_doc = :type_doc,
+                    phone = :phone,
+                    address = :address,
                     updated_at = NOW()
                 WHERE id = :id"
             );
@@ -144,16 +137,14 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
             $updated = $stmt->execute([
                 ':id' => $id,
                 ':usuario_id' => $pessoa_fisica->usuario_id,
-                ':nome' => $pessoa_fisica->nome,
-                ':nome_social' => $pessoa_fisica->nome_social,
+                ':name' => $pessoa_fisica->name,
+                ':social_name' => $pessoa_fisica->social_name,
                 ':email' => $pessoa_fisica->email,
-                ':data_nascimento' => $pessoa_fisica->data_nascimento,
-                ':nome_pai' => $pessoa_fisica->nome_pai,
-                ':nome_mae' => $pessoa_fisica->nome_mae,
-                ':telefone' => $pessoa_fisica->telefone,
-                ':rg' => $pessoa_fisica->rg,
-                ':endereco' => $pessoa_fisica->endereco,
-                ':cpf' => $pessoa_fisica->cpf
+                ':birthday' => $pessoa_fisica->birthday,
+                ':phone' => $pessoa_fisica->phone,
+                ':type_doc' => $pessoa_fisica->type_doc,
+                ':address' => $pessoa_fisica->address,
+                ':doc' => $pessoa_fisica->doc
             ]);
 
             if (!$updated) {        
@@ -168,22 +159,42 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
         }
     }
 
-    public function findPessoaFisica(array $criteria): ?PessoaFisica
+    public function updateByUser(array $data, int $user_id)
     {
+        $pessoa_fisica = $this->findPessoaFisica(['user_id' => $user_id]);
+
+        if (is_null($pessoa_fisica)) {
+            return null;
+        }
+
+        return $this->update($data, $pessoa_fisica->id);
+    }
+
+    public function findPessoaFisica(array $criteria = []): ?PessoaFisica
+    {
+        if(empty($criteria)) {
+            return null;
+        }
+
         try {
             $conditions = [];
             $params = [];
             if (!empty($criteria['name'])) {
-                $conditions[] = "nome = :nome";
-                $params[':nome'] = $criteria['name'];
+                $conditions[] = "name = :name";
+                $params[':name'] = $criteria['name'];
             }
             if (!empty($criteria['email'])) {
                 $conditions[] = "email = :email";
                 $params[':email'] = $criteria['email'];
             }
-            if (!empty($criteria['cpf'])) {
-                $conditions[] = "cpf = :cpf";
-                $params[':cpf'] = $criteria['cpf'];
+            if (!empty($criteria['doc'])) {
+                $conditions[] = "doc = :doc";
+                $params[':doc'] = $criteria['doc'];
+            }
+
+            if (!empty($criteria['user_id'])) {
+                $conditions[] = "usuario_id = :user_id";
+                $params[':user_id'] = $criteria['user_id'];
             }
 
             if (empty($conditions)) {
@@ -209,7 +220,7 @@ class PessoaFisicaRepository implements IPessoaFisicaRepository {
         $stmt = $this->conn
         ->prepare(
             "UPDATE " . self::TABLE . " 
-             SET ativo = 0 
+             SET active = 0 
              WHERE id = :id"
         );
 

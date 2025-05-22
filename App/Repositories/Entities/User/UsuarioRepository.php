@@ -3,49 +3,60 @@
 namespace App\Repositories\Entities\User;
 
 use App\Config\Database;
+use App\Config\SingletonInstance;
 use App\Models\User\Usuario;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
+use App\Repositories\Entities\Person\PessoaFisicaRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
+use PDO;
 
-class UsuarioRepository implements IUsuarioRepository {
+class UsuarioRepository extends SingletonInstance implements IUsuarioRepository {
     const CLASS_NAME = Usuario::class;
     const TABLE = 'usuarios';
     
     use FindTrait;
-    protected $conn;
-    protected $model;
     private $permissioRepository;
     protected $arquivoRepository;
+    protected $pessoaFisicaRepository;
 
     public function __construct() {
         $this->conn = Database::getInstance()->getConnection();
         $this->model = new Usuario();
-        $this->permissioRepository = new PermissaoRepository();
-        $this->arquivoRepository = new ArquivoRepository();
+        $this->permissioRepository = PermissaoRepository::getInstance();
+        $this->arquivoRepository = ArquivoRepository::getInstance();
+        $this->pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
     }
 
     public function all(array $params = [])
     {
-        $sql = "SELECT * FROM " . self::TABLE;
+        $sql = "SELECT u.*, JSON_OBJECT(
+                    'id', p.id,
+                    'name', p.name,
+                    'uuid', p.uuid,
+                    'email', p.email,                    
+                    'address', p.address,
+                    'phone', p.phone
+                ) AS pessoa_fisica
+              FROM " . self::TABLE . " u inner join pessoa_fisica p on u.id = p.usuario_id ";
 
         $conditions = [];
         $bindings = [];
 
         if (isset($params['name_email'])) {
-            $conditions[] = "(nome LIKE :name_email or email LIKE :name_email)";
+            $conditions[] = "(u.name LIKE :name_email or u.email LIKE :name_email)";
             $bindings[':name_email'] = '%' . $params['name_email'] . '%';
         }
 
         if (isset($params['access']) && $params['access'] != '') {
-            $conditions[] = "acesso = :access";
+            $conditions[] = "u.access = :access";
             $bindings[':access'] = $params['access'];
         }
 
         if (isset($params['situation']) && $params['situation'] != '') {
-            $conditions[] = "ativo = :situation";
+            $conditions[] = "u.active = :situation";
             $bindings[':situation'] = $params['situation'];
         }
 
@@ -53,7 +64,7 @@ class UsuarioRepository implements IUsuarioRepository {
             $sql .= " WHERE " . implode(" AND ", $conditions);
         }
 
-        $sql .= " ORDER BY nome DESC";
+        $sql .= " ORDER BY u.name DESC";
 
         $stmt = $this->conn->prepare($sql);
 
@@ -74,34 +85,48 @@ class UsuarioRepository implements IUsuarioRepository {
             $data,
             $forceNewPassword
         );
-
+        $this->conn->beginTransaction();
         try {
             $stmt = $this->conn
             ->prepare(
                 "INSERT INTO " . self::TABLE . " 
                   set 
                     uuid = :uuid,
-                    nome = :name, 
+                    name = :name, 
                     email = :email, 
-                    senha = :password,
-                    acesso = :sector
+                    access = :access,
+                    password = :password
             ");
             $create = $stmt->execute([
                 ':uuid' => $user->uuid,
-                ':name' => $user->nome,
+                ':name' => $user->name,
+                ':access' => $user->access,
                 ':email' => $user->email,
-                ':password' => $user->senha,
-                ':sector' => $user->acesso
+                ':password' => $user->password
             ]);
     
             if (is_null($create)) {
+                $this->conn->rollBack();
                 return null;
             }
 
             $userFromDb = $this->findByUuid($user->uuid);
-            $this->assignPermissionsToUser($userFromDb);            
+
+            $this->assignPermissionsToUser($userFromDb); 
+            
+            $data['usuario_id'] = $userFromDb->id;
+            
+            $person = $this->pessoaFisicaRepository->create($data);
+
+            if (is_null($person)) {
+                $this->conn->rollBack();
+                return null;
+            }
+
+            $this->conn->commit();
             return $userFromDb;
         } catch (\Throwable $th) {
+            $this->conn->rollBack();
             LoggerHelper::logInfo($th->getMessage());
             return null;
         } finally {          
@@ -152,15 +177,15 @@ class UsuarioRepository implements IUsuarioRepository {
             return null; 
         }
 
-        $data['existing_password'] = $existingUser->senha;
-        isset($data['password']) ? $senha = (string)$data['password'] : $senha = $existingUser->senha;
+        $data['existing_password'] = $existingUser->password;
+        isset($data['password']) ? $password = (string)$data['password'] : $password = $existingUser->password;
         $user = $this->model
             ->update(
                 $data, 
                 $existingUser, 
                 !hash_equals(
-                    $senha, 
-                    $existingUser->senha
+                    $password, 
+                    $existingUser->password
                 )
             );
 
@@ -168,21 +193,21 @@ class UsuarioRepository implements IUsuarioRepository {
             $stmt = $this->conn->prepare(
                 "UPDATE " . self::TABLE . "
                     SET 
-                        nome = :name, 
+                        name = :name, 
                         email = :email, 
-                        ativo = :status,
-                        acesso = :sector,
-                        senha = :senha
+                        access = :access,
+                        active = :status,
+                        password = :senha
                     WHERE id = :id"
             );
 
             $parameters = [
                 ':id' => $id,
-                ':name' => $user->nome,
+                ':name' => $user->name,
                 ':email' => $user->email,
-                ':sector' => $user->acesso,
-                ':status' => $user->ativo,
-                ':senha' => $user->senha
+                ':access' => $user->access,
+                ':status' => $user->active,
+                ':senha' => $user->password
             ];
 
             $updated = $stmt->execute($parameters);
@@ -195,9 +220,11 @@ class UsuarioRepository implements IUsuarioRepository {
 
             $this->assignPermissionsToUser($userFromDb);
 
+            $this->pessoaFisicaRepository->updateByUser($data, $userFromDb->id);
+
             return $userFromDb;
         } catch (\Throwable $th) {
-            LoggerHelper::logInfo($th->getMessage());
+            LoggerHelper::logInfo($th->getMessage() . $th->getFile() . $th->getLine());
             return null;
         } finally {          
             Database::getInstance()->closeConnection();
@@ -225,7 +252,7 @@ class UsuarioRepository implements IUsuarioRepository {
         }
     
         $stmt = $this->conn->prepare(
-            "SELECT id as code, senha, nome, email, acesso, ativo, arquivo_id, uuid as id 
+            "SELECT id as code, password, name, email, access, active, arquivo_id, uuid as id 
              FROM " . self::TABLE . " 
              WHERE email = :email"
         );
@@ -238,12 +265,12 @@ class UsuarioRepository implements IUsuarioRepository {
         if (!$user) {
             return null;
         }
-    
-        if (!password_verify($senha, $user->senha)) {
+
+        if (!password_verify($senha, $user->password)) {
             return null;
-        }
+        }       
     
-        unset($user->uuid, $user->senha);
+        unset($user->uuid, $user->password);
     
         return $user;
     }    
@@ -253,7 +280,7 @@ class UsuarioRepository implements IUsuarioRepository {
         $stmt = $this->conn
         ->prepare(
             "UPDATE " . self::TABLE . " 
-             SET ativo = 0 
+             SET active = 0 
              WHERE id = :id"
         );
 
@@ -262,20 +289,45 @@ class UsuarioRepository implements IUsuarioRepository {
         return $updated;
     }
 
-    public function remove($id) :?bool 
-    {
-        
+    public function active($id) :?bool 
+    {        
         $usuario = $this->findById((int)$id);
         
         if (is_null($usuario)) {
             return null;
         }
         
-        if(!$this->removePermissions($id)) {
-            return null;
-        };
-        
         try {
+            $stmt = $this->conn->prepare("UPDATE " . self::TABLE . " SET active=:active WHERE id = :id");
+            $actived = $stmt->execute([
+                ':active' => 1,
+                ':id' => $id
+            ]);
+            if($actived) {
+                return true;
+            }
+            return false;
+        } catch(\Throwable $th) {
+            LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
+            return null;
+        } finally {          
+            Database::getInstance()->closeConnection();
+        }
+    }
+
+    public function remove($id) :?bool 
+    {        
+        $usuario = $this->findById((int)$id);
+        
+        if (is_null($usuario)) {
+            return null;
+        }
+
+        try {
+            if(!$this->removePermissions($id)) {
+                return null;
+            };
+
             $stmt = $this->conn->prepare("DELETE FROM " . self::TABLE . " WHERE id = :id");
             $delete = $stmt->execute([
                 ':id' => $id
@@ -348,7 +400,7 @@ class UsuarioRepository implements IUsuarioRepository {
 
     private function assignPermissionsToUser(Usuario $userFromDb)
     {
-        $access = $userFromDb->acesso !== 'administrativo' ? $userFromDb->acesso : null;
+        $access = !is_null($userFromDb->access) ? $userFromDb->access : null;
         
         $permissions = $this->permissionList($access);
 
@@ -356,7 +408,17 @@ class UsuarioRepository implements IUsuarioRepository {
             return $userFromDb;
         }
 
-        $permissionIds = array_map(fn($permission) => $permission['id'], $permissions);
+        $permissionNames = array_map(fn($permission) => $permission['name'], $permissions);
+
+        $placeholders = implode(',', array_fill(0, count($permissionNames), '?'));
+
+        $stmt = $this->conn->prepare(
+            "SELECT id FROM permissao WHERE name IN ($placeholders)"
+        );
+
+        $stmt->execute($permissionNames);
+
+        $permissionIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
         $this->addPermissions(['permissions' => $permissionIds], $userFromDb->id);
 
@@ -379,151 +441,72 @@ class UsuarioRepository implements IUsuarioRepository {
         return $file;
     }
 
-    private function permissionList ($sector) 
+    private function permissionList($role)
     {
-        if ($sector == 'administrativo') {
-            $permissao = array(
-                array('id' => '1', 'name' => 'visualizar usuários','description' => 'Visualizar todos os usuarios'),
-                array('id' => '2', 'name' => 'editar usuarios','description' => 'atualizar dados do usuários'),
-                array('id' => '3', 'name' => 'criar usuários','description' => 'cadastrar usuários'),
-                array('id' => '4', 'name' => 'deletar usuários','description' => 'excluir conta de usuários'),
-                array('id' => '5', 'name' => 'visualizar cadastro','description' => 'acesso ao cadastros '),
-                array('id' => '6', 'name' => 'visualizar turmas','description' => 'visualizar turmas geral'),
-                array('id' => '7', 'name' => 'visualizar professores','description' => 'visualizar professores'),
-                array('id' => '8', 'name' => 'visualizar estudantes','description' => 'visualizar estudantes'),
-                array('id' => '9', 'name' => 'visualizar disciplinas','description' => 'visualizar disciplinas'),
-                array('id' => '10', 'name' => 'visualizar planos','description' => 'visualizar planos'),
-                array('id' => '11', 'name' => 'visualizar turmas estudantes','description' => 'visualizar turma estudantes'),
-                array('id' => '12', 'name' => 'visualizar mensalidades','description' => 'visualizar mensalidades'),
-                array('id' => '13', 'name' => 'deletar professores','description' => 'deletar professore'),
-                array('id' => '14', 'name' => 'deletar estudantes','description' => 'deletar apartamento'),
-                array('id' => '15', 'name' => 'editar professores','description' => 'editar apartamento'),
-                array('id' => '16', 'name' => 'editar estudantes','description' => 'editar cliente'),
-                array('id' => '17', 'name' => 'cadastrar professores','description' => 'cadastrar cliente'),
-                array('id' => '18', 'name' => 'cadastrar estudantes','description' => 'cadastrar apartamento'),
-                array('id' => '19', 'name' => 'cadastrar turmas','description' => 'cadastrar dados de reservas'),
-                array('id' => '20', 'name' => 'editar turmas','description' => 'editar dados de reservas'),
-                array('id' => '21', 'name' => 'deletar turmas','description' => 'deleção de dados das reservas'),
-                array('id' => '22', 'name' => 'editar disciplinas','description' => 'editar produto'),
-                array('id' => '23', 'name' => 'visualizar conteudos','description' => 'visualizar produtos'),
-                array('id' => '24', 'name' => 'deletar conteudos','description' => 'deletar produtos'),
-                array('id' => '25', 'name' => 'cadastrar conteudos','description' => 'cadastrar produtos'),
-                array('id' => '26', 'name' => 'cadastrar planos','description' => 'cadastrar vendas'),
-                array('id' => '27', 'name' => 'visualizar pedagogico','description' => 'visualizar as ações para menu pedagogicos'),
-                array('id' => '28', 'name' => 'visualizar financeiro','description' => 'visualizar ações do bloco financeiro'),
-                array('id' => '29', 'name' => 'editar planos','description' => 'editar os planos'),
-                array('id' => '30', 'name' => 'deletar planos','description' => 'deletar planos de mensalidade'),
-                array('id' => '31', 'name' => 'visualizar contas bancarias','description' => 'acesso visualizar contas bancarias '),
-                array('id' => '32', 'name' => 'cadastrar contas','description' => ''),
-                array('id' => '33', 'name' => 'editar contas','description' => ''),
-                array('id' => '34', 'name' => 'deletar contas','description' => ''),
-                array('id' => '37', 'name' => 'visualizar turma e estudante','description' => 'visualizar turma e estudante'),
-                array('id' => '38', 'name' => 'vincular turmas e estudantes','description' => 'vincular turmas e estudantes'),
-                array('id' => '39', 'name' => 'editar turmas e estudantes','description' => 'editar turmas e estudantes'),
-                array('id' => '40', 'name' => 'cadastrar turmas e estudantes','description' => 'cadastrar turmas e estudantes'),
-                array('id' => '41', 'name' => 'inativar vinculos','description' => 'inativar vinculos'),
-                array('id' => '79', 'name' => 'cadastrar mensalidades','description' => 'cadastrar mensalidades'),
-                array('id' => '123', 'name' => 'editar mensalidade','description' => 'edição dos dados da mensalidade'),
-                array('id' => '124', 'name' => 'cancelar mensalidades','description' => 'alterar a situação da mensalidade para cancelado'),
-                array('id' => '125', 'name' => 'efetivar mensalidade','description' => 'alterar o status da mensalidade para pago'),
-                array('id' => '126', 'name' => 'visualizar cards dashboard','description' => 'visualizar cards dashboard'),
-                array('id' => '127', 'name' => 'editar turmas-disciplinas','description' => 'editar turmas-disciplinas'),
-                array('id' => '128', 'name' => 'deletar turmas-disciplinas','description' => 'deletar turmas-disciplinas'),
-                array('id' => '129', 'name' => 'vincular turmas-disciplinas','description' => 'vincular turmas-disciplinas'),
-                array('id' => '130', 'name' => 'visualizar atividades','description' => 'visualizar atividades'),
-                array('id' => '131', 'name' => 'cadastrar atividades','description' => 'cadastrar atividades'),
-                array('id' => '132', 'name' => 'cadastrar coordenadores','description' => 'cadastrar coordenadores'),
-                array('id' => '133', 'name' => 'editar coordenadores','description' => 'editar coordenadores'),
-                array('id' => '134', 'name' => 'visualizar coordenadores','description' => 'visualizar coordenadores'),
-                array('id' => '135', 'name' => 'deletar coordenadores','description' => 'deletar coordenadores'),
-                array('id' => '136', 'name' => 'visualizar bimestres','description' => 'visualizar bimestres'),
-                array('id' => '137', 'name' => 'cadastrar pessoa','description' => 'cadastrar pessoa'),
-                array('id' => '138', 'name' => 'editar pessoa','description' => 'editar pessoa'),
-                array('id' => '139', 'name' => 'deletar pessoa','description' => 'deletar pessoa'),
-                array('id' => '140', 'name' => 'visualizar pessoas','description' => 'visualizar pessoas'),
-                array('id' => '142', 'name' => 'visualizar carga_horaria','description' => 'visualizar cargas horarias'),
-                array('id' => '143', 'name' => 'visualizar periodos','description' => 'visualizar periodos'),
-                array('id' => '144', 'name' => 'editar periodo','description' => 'editar periodos'),
-                array('id' => '145', 'name' => 'cadastrar periodo','description' => 'cadastrar periodo'),
-                array('id' => '146', 'name' => 'deletar periodo','description' => 'deletar periodo'),
-              );
-            return $permissao;
+        if ($role == 'administrador') {
+            // Acesso total ao sistema
+            return [
+                ['name' => 'gerenciar_usuarios'],
+                ['name' => 'visualizar_reservas'],
+                ['name' => 'gerenciar_reservas'],
+                ['name' => 'gerenciar_quartos'],
+                ['name' => 'gerenciar_clientes'],
+                ['name' => 'visualizar_financeiro'],
+                ['name' => 'gerenciar_pagamentos'],
+                ['name' => 'gerenciar_funcionarios'],
+                ['name' => 'gerenciar_comandas'],
+                ['name' => 'visualizar_dashboard'],
+                ['name' => 'gerenciar_hotel'],
+                ['name' => 'visualizar_comandas'],
+                ['name' => 'gerenciar_comandas'],
+                ['name' => 'registrar_pagamentos_bar'],
+                ['name' => 'abrir_comanda'],
+                ['name' => 'fechar_comanda'],
+
+            ];
         }
 
-        if ($sector == 'coordenador') {
-            $permissao = array(
-                array('id' => '5', 'name' => 'visualizar cadastro','description' => 'acesso ao cadastros '),
-                array('id' => '6', 'name' => 'visualizar turmas','description' => 'visualizar turmas geral'),
-                array('id' => '7', 'name' => 'visualizar professores','description' => 'visualizar professores'),
-                array('id' => '8', 'name' => 'visualizar estudantes','description' => 'visualizar estudantes'),
-                array('id' => '9', 'name' => 'visualizar disciplinas','description' => 'visualizar disciplinas'),
-                array('id' => '10', 'name' => 'visualizar planos','description' => 'visualizar planos'),
-                array('id' => '11', 'name' => 'visualizar turmas estudantes','description' => 'visualizar turma estudantes'),
-                array('id' => '12', 'name' => 'visualizar mensalidades','description' => 'visualizar mensalidades'),
-                array('id' => '13', 'name' => 'deletar professores','description' => 'deletar professore'),
-                array('id' => '14', 'name' => 'deletar estudantes','description' => 'deletar apartamento'),
-                array('id' => '15', 'name' => 'editar professores','description' => 'editar apartamento'),
-                array('id' => '16', 'name' => 'editar estudantes','description' => 'editar cliente'),
-                array('id' => '17', 'name' => 'cadastrar professores','description' => 'cadastrar cliente'),
-                array('id' => '18', 'name' => 'cadastrar estudantes','description' => 'cadastrar apartamento'),
-                array('id' => '19', 'name' => 'cadastrar turmas','description' => 'cadastrar dados de reservas'),
-                array('id' => '20', 'name' => 'editar turmas','description' => 'editar dados de reservas'),
-                array('id' => '21', 'name' => 'deletar turmas','description' => 'deleção de dados das reservas'),
-                array('id' => '22', 'name' => 'editar disciplinas','description' => 'editar produto'),
-                array('id' => '23', 'name' => 'visualizar conteudos','description' => 'visualizar produtos'),
-                array('id' => '24', 'name' => 'deletar conteudos','description' => 'deletar produtos'),
-                array('id' => '25', 'name' => 'cadastrar conteudos','description' => 'cadastrar produtos'),
-                array('id' => '26', 'name' => 'cadastrar planos','description' => 'cadastrar vendas'),
-                array('id' => '27', 'name' => 'visualizar pedagogico','description' => 'visualizar as ações para menu pedagogicos'),
-                array('id' => '29', 'name' => 'editar planos','description' => 'editar os planos'),
-                array('id' => '37', 'name' => 'visualizar turma e estudante','description' => 'visualizar turma e estudante'),
-                array('id' => '38', 'name' => 'vincular turmas e estudantes','description' => 'vincular turmas e estudantes'),
-                array('id' => '39', 'name' => 'editar turmas e estudantes','description' => 'editar turmas e estudantes'),
-                array('id' => '40', 'name' => 'cadastrar turmas e estudantes','description' => 'cadastrar turmas e estudantes'),
-                array('id' => '41', 'name' => 'inativar vinculos','description' => 'inativar vinculos'),
-                array('id' => '126', 'name' => 'visualizar cards dashboard','description' => 'visualizar cards dashboard'),
-                array('id' => '127', 'name' => 'editar turmas-disciplinas','description' => 'editar turmas-disciplinas'),
-                array('id' => '128', 'name' => 'deletar turmas-disciplinas','description' => 'deletar turmas-disciplinas'),
-                array('id' => '129', 'name' => 'vincular turmas-disciplinas','description' => 'vincular turmas-disciplinas'),
-                array('id' => '130', 'name' => 'visualizar atividades','description' => 'visualizar atividades'),
-                array('id' => '131', 'name' => 'cadastrar atividades','description' => 'cadastrar atividades'),
-                array('id' => '132', 'name' => 'cadastrar coordenadores','description' => 'cadastrar coordenadores'),
-                array('id' => '133', 'name' => 'editar coordenadores','description' => 'editar coordenadores'),
-                array('id' => '134', 'name' => 'visualizar coordenadores','description' => 'visualizar coordenadores'),
-                array('id' => '135', 'name' => 'deletar coordenadores','description' => 'deletar coordenadores'),
-                array('id' => '136', 'name' => 'visualizar bimestres','description' => 'visualizar bimestres'),
-                array('id' => '137', 'name' => 'cadastrar pessoa','description' => 'cadastrar pessoa'),
-                array('id' => '138', 'name' => 'editar pessoa','description' => 'editar pessoa'),
-                array('id' => '139', 'name' => 'deletar pessoa','description' => 'deletar pessoa'),
-                array('id' => '140', 'name' => 'visualizar pessoas','description' => 'visualizar pessoas'),
-                array('id' => '142', 'name' => 'visualizar carga_horaria','description' => 'visualizar cargas horarias'),
-                array('id' => '143', 'name' => 'visualizar periodos','description' => 'visualizar periodos'),
-                array('id' => '144', 'name' => 'editar periodo','description' => 'editar periodos'),
-                array('id' => '145', 'name' => 'cadastrar periodo','description' => 'cadastrar periodo'),
-                array('id' => '146', 'name' => 'deletar periodo','description' => 'deletar periodo')
-              );
-            return $permissao;
+        if ($role == 'gerente') {
+            // Gestão operacional e supervisão
+            return [
+                ['name' => 'visualizar_reservas'],
+                ['name' => 'gerenciar_reservas'],
+                ['name' => 'gerenciar_quartos'],
+                ['name' => 'gerenciar_clientes'],
+                ['name' => 'visualizar_financeiro'],
+                ['name' => 'gerenciar_comandas'],
+                ['name' => 'gerenciar_pagamentos'],
+                ['name' => 'acessar_dashboard'],
+                ['name' => 'abrir_comanda'],
+                ['name' => 'fechar_comanda'],
+            ];
         }
 
-        if ($sector == 'professor') {
-            $permissao = array(                
-                array('id' => '36', 'name' => 'estudante','description' => 'permissao para acesso estudante')
-              );
-            return $permissao;
-        }
-        
-        if ($sector == 'estudante') {
-            $permissao = array(                
-                array('id' => '141', 'name' => 'responsavel_legal','description' => 'responsavel legal dos estudantes')
-              );
-            return $permissao;
+        if ($role == 'recepcionista') {
+            // Atendimento ao cliente e registro de reservas
+            return [
+                ['name' => 'visualizar_reservas'],
+                ['name' => 'gerenciar_reservas'],
+                ['name' => 'gerenciar_clientes'],
+                ['name' => 'gerenciar_pagamentos'],
+                ['name' => 'gerenciar_comandas'],
+                ['name' => 'abrir_comanda'],
+                ['name' => 'fechar_comanda'],
+            ];
         }
 
-        if ($sector == 'responsavel_legal') {
-            $permissao = array(                
-                array('id' => '141', 'name' => 'responsavel_legal','description' => 'responsavel legal dos estudantes')
-              );
-            return $permissao;
+        if ($role == 'recepcionista_bar') {
+            // Acesso restrito ao controle do bar
+            return [
+                ['name' => 'visualizar_comandas'],
+                ['name' => 'abrir_comanda'],
+                ['name' => 'fechar_comanda'],
+                ['name' => 'registrar_pagamentos_bar'],
+            ];
         }
+
+        // Caso não se enquadre em nenhum perfil conhecido
+        return [];
     }
+
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\v1\User;
 
 use App\Config\Auth;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\v1\Traits\GenericTrait;
 use App\Http\Controllers\v1\Traits\UserToPerson;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\File\IArquivoRepository;
@@ -15,7 +16,7 @@ use App\Utils\Validator;
 
 class UsuarioController extends Controller
 {
-    use UserToPerson;
+    use UserToPerson, GenericTrait;
 
     protected $usuarioRepository;
     protected $pessoaFisicaRepository;
@@ -37,8 +38,8 @@ class UsuarioController extends Controller
     }
 
     public function index(Request $request) {
-        if(!hasPermission('visualizar usuários')) {
-            return $this->router->redirect('dashboard?error=422');
+        if(hasPermission('visualizar usuários')) {
+            return $this->router->redirect('dashboard?error=401');
         }
 
         $params = $request->getQueryParams();
@@ -49,7 +50,7 @@ class UsuarioController extends Controller
         $paginator = new Paginator($usuario, $perPage, $currentPage);
         $paginatedBoards = $paginator->getPaginatedItems();
 
-        return $this->router->view('admin/profile/index', [
+        return $this->router->view('Profile/index', [
             'active' => 'register',
             'usuarios' => $paginatedBoards,
             'links' => $paginator->links(),
@@ -60,11 +61,11 @@ class UsuarioController extends Controller
     }
 
     public function create() {
-        if(!hasPermission('criar usuários')) {
+        if(hasPermission('criar usuários')) {
             return $this->router->redirect('usuario?error=422');
         }
 
-        return $this->router->view('admin/profile/create', ['active' => 'register']);
+        return $this->router->view('Profile/create', ['active' => 'register']);
     }
 
     public function store(Request $request) {
@@ -80,7 +81,7 @@ class UsuarioController extends Controller
 
         if (!$validator->validate($rules)) {
             return $this->router->view(
-                'usuario/create', 
+                'user/create', 
                 [
                     'active' => 'register', 
                     'errors' => $validator->getErrors()
@@ -91,16 +92,16 @@ class UsuarioController extends Controller
         $created = $this->usuarioRepository->create($data);
 
         if(is_null($created)) {            
-        return $this->router->view('admin/profile/create', ['active' => 'register', 'danger' => true]);
+        return $this->router->view('Profile/create', ['active' => 'register', 'danger' => true]);
         }
 
-        return $this->router->redirect('usuario/');
+        return $this->router->redirect('users/');
     }
 
     public function edit(Request $request, $id) 
     {
-        if(!hasPermission('editar usuarios')) {
-            return $this->router->redirect('usuario?error=422');
+        if(hasPermission('editar usuarios')) {
+            return $this->router->redirect('users?error=401');
         }
 
         $usuario = $this->usuarioRepository->findByUuid($id);
@@ -109,7 +110,7 @@ class UsuarioController extends Controller
             return $this->router->view('profile/', ['active' => 'register', 'danger' => true]);
         }
 
-        return $this->router->view('admin/profile/edit', ['active' => 'register', 'usuario' => $usuario]);
+        return $this->router->view('Profile/edit', ['active' => 'register', 'usuario' => $usuario]);
     }
 
     public function update(Request $request, $id) 
@@ -131,7 +132,7 @@ class UsuarioController extends Controller
 
         if (!$validator->validate($rules)) {
             return $this->router->view(
-                'admin/profile/edit', 
+                'Profile/edit', 
                 [
                     'active' => 'register', 
                     'errors' => $validator->getErrors()
@@ -142,10 +143,10 @@ class UsuarioController extends Controller
         $updated = $this->usuarioRepository->update($data, $usuario->id);
         
         if(is_null($updated)) {            
-        return $this->router->view('admin/profile/edit', ['active' => 'register', 'danger' => true]);
+        return $this->router->view('Profile/edit', ['active' => 'register', 'danger' => true]);
         }
 
-        return $this->router->redirect('usuario/');
+        return $this->router->redirect('users/');
     }
 
     public function profileUpdate(Request $request)
@@ -168,29 +169,46 @@ class UsuarioController extends Controller
         $updated = $this->usuarioRepository->updatePassword($data, $personAuth->usuario_id);
         
         $arquivo = $_SESSION['files'];
-        return $this->router->view('admin/profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
+        return $this->router->view('Profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
     } 
 
     public function delete(Request $request, $id) 
     {
-        if(!hasPermission('deletar usuários')) {
-            return $this->router->redirect('usuario?error=422');
+        if(hasPermission('deletar usuários')) {
+            $this->responseJson("não possui permissao", 401);
         }
 
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('profile/', ['active' => 'register', 'danger' => true]);
+            $this->responseJson("Não foi deletado" , 422);
         }
 
         $usuario = $this->usuarioRepository->delete($usuario->id);
 
-        return $this->router->redirect('usuario/');
+        $this->responseJson("Deletado com sucesso" );
+    }
+
+    public function activeUser(Request $request, $id) 
+    {
+        if(hasPermission('ativar usuários')) {
+            $this->responseJson("não possui permissao", 401);
+        }
+
+        $usuario = $this->usuarioRepository->findByUuid($id);
+        
+        if (is_null($usuario)) {
+            $this->responseJson("Não foi ativado" , 422);
+        }
+
+        $usuario = $this->usuarioRepository->active($usuario->id);
+
+        $this->responseJson("ativado com sucesso" );
     }
 
     public function login(Request $request) 
     {
-        return $this->router->view('admin/login/login');
+        return $this->router->view('Login/index');
     }
 
     public function auth(Request $request) 
@@ -210,26 +228,27 @@ class UsuarioController extends Controller
     public function logout() {
         $auth = new Auth();
         $auth->logout();
-        return $this->router->view('admin/login/login', ['message' => 'Deslogado', 'success' => true]);
+        return $this->router->redirect('login/');
     }
 
-    public function permissao(Request $request, $id) {
+    public function permissionUser(Request $request, $id) {
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('admin/profile/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('Profile/', ['active' => 'register', 'danger' => true]);
         }
 
         $permissoes = $this->permissaoRepository->all();
         $permissao = $this->usuarioRepository->findPermissions($usuario->id);
 
-        $data = [
-            'usuario' => $usuario, 
-            'permissions_user' => $permissao, 
-            'permissions' => $permissoes
-        ];
-
-        return $this->router->view('admin/profile/permission', ['active' => 'register', 'data' => $data]);
+        return $this->router->view('Profile/permission', 
+            [
+                'active' => 'register',  
+                'usuario' => $usuario, 
+                'permissions_user' => $permissao, 
+                'permissions' => $permissoes
+            ]
+        );
     }
 
     public function add_permissao(Request $request, $id) 
@@ -238,12 +257,12 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('admin/profile/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('Profile/', ['active' => 'register', 'danger' => true]);
         }
 
         $permissao = $this->usuarioRepository->addPermissions($data, $usuario->id);
            
-        return $this->router->redirect('usuario/'. $id .'/permissao');
+        return $this->router->redirect('user/'. $id .'/permission');
     }
 
     public function profile(Request $request) 
@@ -251,7 +270,7 @@ class UsuarioController extends Controller
         $personAuth = $this->authUser();
         $arquivo = $_SESSION['files'];
      
-        return $this->router->view('admin/profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
+        return $this->router->view('Profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
     }
 
     public function profileUploadPhoto(Request $request) 
