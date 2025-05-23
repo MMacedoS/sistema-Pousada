@@ -9,8 +9,8 @@ use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Traits\FindTrait;
 
 class PermissaoRepository extends SingletonInstance implements IPermissaoRepository{
-    const CLASS_NAME = Permissao::class;
-    const TABLE = 'permissao';
+    private const CLASS_NAME = Permissao::class;
+    private const TABLE = 'permissao';
     
     use FindTrait;
 

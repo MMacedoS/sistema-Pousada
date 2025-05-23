@@ -183,6 +183,22 @@ if (!function_exists('alertaBootstrap')) {
         }
 
         return $html;
-    }
+    }    
+}
 
+if(!function_exists('checkboxToInt')) {
+    function checkboxToInt($value = null) {
+        if(is_null($value)) {
+            return null;
+        }
+
+        // Se o valor existe e não está vazio
+        if (isset($value) && !empty($value)) {
+            // Converte diferentes tipos de valores "truthy" para 1
+            if ($value === 'on' || $value === '1' || $value === 1 || $value === true) {
+                return 1;
+            }
+        }
+        return 0;
+    }
 }

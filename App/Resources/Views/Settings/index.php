@@ -54,26 +54,26 @@
             <h3 class="display-8 bg-opacity-25 text-secondary">Parâmetros do Sistema</h3>
         </div>
         <div class="card-body">
-            <form action="/user" method="post">
+            <form action="/settings" method="post">
                 <div class="row gx-3 mb-2">
                     <div class="col-lg-4 col-sm-12 col-12 mt-sm-3">
                         <div class="m-0">
                             <label class="form-label">Nome da Empresa</label>
-                            <input type="text" class="form-control rounded-3" name="name" id="name" placeholder="digite aqui" value="<?=$usuario->name ?? ''?>" />
+                            <input type="text" class="form-control rounded-3" name="name" id="name" placeholder="digite aqui" value="<?=$setting->company_name ?? ''?>" />
                             <div class="invalid-feedback" id="name_error"></div>
                         </div>
                     </div>
                     <div class="col-lg-4 col-sm-12 col-12 mt-sm-3">
                         <div class="m-0">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control rounded-3" required name="email" id="email" placeholder="digite aqui" value="<?=$usuario->name ?? ''?>" />
+                            <input type="email" class="form-control rounded-3" required name="email" id="email" placeholder="digite aqui" value="<?=$setting->email ?? ''?>" />
                             <div class="invalid-feedback" id="email_error"></div>
                         </div>
                     </div>
                     <div class="col-lg-4 col-sm-12 col-12 mt-sm-3">
                         <div class="m-0">
                             <label class="form-label">Telefone</label>
-                            <input type="phone" class="form-control rounded-3" name="phone" id="phone" maxlength="16" maxlength="15" placeholder="(99) 99999-9999" value="<?=$pessoa_fisica->telefone ?? ''?>" 
+                            <input type="phone" class="form-control rounded-3" name="phone" id="phone" maxlength="16" maxlength="15" placeholder="(99) 99999-9999" value="<?=$setting->phone ?? ''?>" 
                              required/>
                             <div class="invalid-feedback">Telefone inválido</div>
                         </div>
@@ -83,7 +83,7 @@
                     <div class="col-lg-4 col-sm-12 col-12 mt-sm-3">
                         <div class="m-0">
                             <label class="form-label">CNPJ</label>
-                            <input type="text" class="form-control rounded-3" name="cnpj" id="cnpj_company" maxlength="18" maxlength="18" placeholder="xx.xxx.xxx/0001-xx" value="<?=$pessoa_fisica->telefone ?? ''?>" 
+                            <input type="text" class="form-control rounded-3" name="cnpj" id="cnpj_company" maxlength="18" maxlength="18" placeholder="xx.xxx.xxx/0001-xx" value="<?=$setting->cnpj ?? ''?>" 
                                 required/>
                             <div class="invalid-feedback">CNPJ inválido</div>
                         </div>
@@ -91,7 +91,7 @@
                     <div class="col-lg-8 col-sm-12 col-12 mt-sm-3">
                         <div class="m-0">
                             <label class="form-label">Endereço</label>
-                            <input type="text" name="address" id="address" class="form-control rounded-3" value="<?=$pessoa_fisica->address ?? ''?>" >
+                            <input type="text" name="address" id="address" class="form-control rounded-3" value="<?=$setting->address ?? ''?>" >
                             <div class="invalid-feedback">Endereço não pode ser vazio</div>
                         </div>
                     </div>
@@ -99,34 +99,34 @@
                 <div class="row gx-3 mb-2">
                     <div class="col-lg-4 col-sm-6 col-12 mt-sm-3">
                         <label class="form-label">Hora Check-in</label>
-                        <input type="time" name="checkin" id="checkin" class="form-control rounded-3">
+                        <input type="time" name="checkin" id="checkin" class="form-control rounded-3" value="<?=$setting->checkin ?? ''?>">
                     </div>
                     <div class="col-lg-4 col-sm-6 col-12 mt-sm-3">
                         <label class="form-label">Hora Check-out</label>
-                        <input type="time" name="checkout" id="checkout" class="form-control rounded-3">
+                        <input type="time" name="checkout" id="checkout" class="form-control rounded-3" value="<?=$setting->checkout ?? ''?>">
                     </div>
 
                     <div class="col-lg-2 col-sm-6 col-12 mt-sm-3">
                         <label class="form-label">Taxa de Porcentagem</label>
-                        <input type="number" step="0.01" min="0" name="porcentage_service_fee" id="porcentage_service_fee" class="form-control rounded-3">
+                        <input type="number" step="0.01" min="0" name="percentage_service_fee" id="percentage_service_fee" class="form-control rounded-3" value="<?=$setting->percentage_service_fee ?? ''?>">
                     </div>
 
                     <div class="col-lg-2 col-sm-6 col-12 mt-sm-3">
                         <label class="form-label">Taxa de Limpeza</label>
-                        <input type="number" step="0.5" min="0" name="cleaning_rate" id="cleaning_rate" class="form-control rounded-3">
+                        <input type="number" step="0.5" min="0" name="cleaning_rate" id="cleaning_rate" class="form-control rounded-3" value="<?=$setting->cleaning_rate ?? ''?>">
                     </div>
                 </div>
                 <div class="row gx-3 mb-2 mt-3">                   
                    <div class="col-lg-4 col-sm-6 col-12 mt-sm-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" name="display_values_on_dashboard" id="display_values_on_dashboard" />
+                            <input class="form-check-input" type="checkbox" role="switch" name="display_values_on_dashboard" id="display_values_on_dashboard" <?= isset($setting->display_values_on_dashboard) && $setting->display_values_on_dashboard == 1 ? 'checked' : ''?>/>
                             <label class="form-label" for="display_values_on_dashboard">Exibir valores em dashboard</label>
                         </div>
                    </div>
 
                    <div class="col-lg-4 col-sm-6 col-12 mt-sm-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" name="allow_booking_online" id="allow_booking_online" />
+                            <input class="form-check-input" type="checkbox" role="switch" name="allow_booking_online" id="allow_booking_online" <?= isset($setting->allow_booking_online) && $setting->allow_booking_online == 1 ? 'checked' : ''?> />
                             <label class="form-label" for="allow_booking_online">Permitir reserva online</label>
                         </div>
                    </div>
@@ -148,13 +148,14 @@
 
                     <div class="col-lg-4 col-sm-6 col-12 mt-sm-3">
                         <label class="form-label">Dias maximos reserva antecipada</label>
-                        <input type="number" min="0" name="advance_booking_days" id="advance_booking_days" class="form-control rounded-3">
+                        <input type="number" min="0" name="advance_booking_days" id="advance_booking_days" class="form-control rounded-3" value="<?=$setting->advance_booking_days ?? ''?>">
                     </div>
                 </div>
                 <div class="row mb-2 mt-4">
                     <div class="col-lg-12 col-sm-12 col-12">
                         <label class="form-label">Políticas de Cancelamento</label>
-                        <textarea name="cancellation_policies" id="cancellation_policies" class="form-control rounded-3"></textarea>
+                        <textarea name="cancellation_policies" id="cancellation_policies" class="form-control rounded-3"><?=$setting->cancellation_policies ?? ''?>
+                        </textarea>
                     </div>
                 </div>
                 <div class="row mb-2 mt-4 ">
