@@ -5,6 +5,7 @@ namespace App\Config;
 use App\Repositories\Entities\File\ArquivoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class Auth {
     protected $sessionTimeout = 3600;
@@ -68,5 +69,37 @@ class Auth {
 
     public function user() {
         return $_SESSION['user'] ?? null;
+    }
+
+    public function generateToken($username) {
+        if (is_null($username)) {
+            return false; 
+        }
+
+        $payload = [
+            'person' => (array)$username,
+            'iat' => time(),
+            'exp' => time() + $this->sessionTimeout,
+        ];
+
+        $token = JWT::encode($payload, $_ENV['SECRET_KEY'],'HS256');   
+        return $token;
+    }
+
+    public function isValidToken($token) {
+        if (is_null($token)) {
+            return false; 
+        }
+
+        try {
+               $decoded = JWT::decode($token, new Key($_ENV['SECRET_KEY'], 'HS256'));
+            
+               if (!isset($decoded->person)) {
+                   return null;
+               }
+            return $decoded;
+        } catch (\Exception $e) {
+            return null; 
+        }
     }
 }

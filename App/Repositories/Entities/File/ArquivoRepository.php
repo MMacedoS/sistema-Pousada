@@ -10,8 +10,8 @@ use App\Repositories\Traits\FindTrait;
 
 class ArquivoRepository extends SingletonInstance implements IArquivoRepository 
 {
-    const CLASS_NAME = Arquivo::class;
-    const TABLE = 'arquivos';
+    private const CLASS_NAME = Arquivo::class;
+    private const TABLE = 'arquivos';
 
     use FindTrait;
 

@@ -15,31 +15,28 @@
                             </a>
                         </li>                   
                         <li class="nav-item dropdown <?=$active === 'reservations' ? 'active-link': ''?>">
-                            <a class="nav-link dropdown-toggle" href="/dashboard" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="icon-calendar"></i> Reservas
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item current-page" href="/admin/sectors">
-                                        <span>Reserva em Grupo</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item current-page" href="/admin/partners">
-                                        <span>Reserva individual</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item current-page" href="/admin/colaborators">
-                                        <span>Consultar</span>
-                                    </a>
-                                </li>                                
-                                <li>
-                                    <a class="dropdown-item current-page" href="/admin/colaborators">
-                                        <span>Mapa</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <? if (hasPermission('visualizar_reservas')): ?>
+                                <a class="nav-link dropdown-toggle" href="/dashboard" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="icon-calendar"></i> Reservas
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item current-page" href="/reservas">
+                                            <span>Reservar</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item current-page" href="/admin/colaborators">
+                                            <span>Consultar</span>
+                                        </a>
+                                    </li>                                
+                                    <li>
+                                        <a class="dropdown-item current-page" href="/admin/colaborators">
+                                            <span>Mapa</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            <? endif; ?>
                         </li>  
                         <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -47,7 +44,7 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a class="dropdown-item current-page" href="/admin/sectors">
+                                    <a class="dropdown-item current-page" href="/apartments">
                                         <span>Lista</span>
                                     </a>
                                 </li>
@@ -59,7 +56,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
+                        <li class="nav-item dropdown <?=$active === 'sales' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="icon-style"></i> Vendas
                             </a>
@@ -77,7 +74,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
+                        <li class="nav-item dropdown <?=$active === 'payments' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="icon-dollar-sign"></i> Pagamentos
                             </a>
@@ -95,7 +92,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
+                        <li class="nav-item dropdown <?=$active === 'pub' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="icon-restaurant"></i> Bar
                             </a>
@@ -113,7 +110,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
+                        <li class="nav-item dropdown <?=$active === 'reports' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="icon-activity"></i> Relatorios
                             </a>
@@ -131,7 +128,7 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="nav-item dropdown <?=$active === 'apartments' ? 'active-link': ''?>">
+                        <li class="nav-item dropdown <?=$active === 'settings' ? 'active-link': ''?>">
                             <a href="/apartments" class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="icon-settings"></i> Configurações
                             </a>

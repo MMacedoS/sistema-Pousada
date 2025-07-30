@@ -10,8 +10,8 @@ use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 
 class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaRepository {
-    const CLASS_NAME = PessoaFisica::class;
-    const TABLE = 'pessoa_fisica';
+    private const CLASS_NAME = PessoaFisica::class;
+    private const TABLE = 'pessoa_fisica';
     
     use FindTrait;
 

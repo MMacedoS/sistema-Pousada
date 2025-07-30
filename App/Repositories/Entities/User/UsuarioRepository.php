@@ -14,8 +14,8 @@ use App\Utils\LoggerHelper;
 use PDO;
 
 class UsuarioRepository extends SingletonInstance implements IUsuarioRepository {
-    const CLASS_NAME = Usuario::class;
-    const TABLE = 'usuarios';
+    private const CLASS_NAME = Usuario::class;
+    private const TABLE = 'usuarios';
     
     use FindTrait;
     private $permissioRepository;

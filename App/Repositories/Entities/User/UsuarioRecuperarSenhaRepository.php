@@ -11,8 +11,8 @@ use App\Services\EmailService;
 use App\Utils\LoggerHelper;
 
 class UsuarioRecuperarSenhaRepository extends SingletonInstance implements IUsuarioRecuperarSenhaRepository {
-    const CLASS_NAME = UsuarioRecuperarSenha::class;
-    const TABLE = 'usuario_recuperar_senha';
+    private const CLASS_NAME = UsuarioRecuperarSenha::class;
+    private const TABLE = 'usuario_recuperar_senha';
     
     use FindTrait;
 

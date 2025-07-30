@@ -1,6 +1,6 @@
 <?php
  
-namespace App\Controllers\v1\Traits;
+namespace App\Http\Controllers\v1\Traits;
 
 use App\Utils\LoggerHelper;
 use Dompdf\Dompdf;

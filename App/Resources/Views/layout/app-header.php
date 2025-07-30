@@ -1,6 +1,5 @@
         <!-- App header starts -->
         <div class="app-header d-flex align-items-center">
-
             <!-- Container starts -->
             <div class="container">
               <!-- Row starts -->
@@ -10,7 +9,7 @@
                   <!-- App brand starts -->
                   <div class="app-brand">
                     <a href="/dashboard/" class="text-light d-md-block fs-1 fw-bold">
-                        <img src="<?=$_ENV['URL_PREFIX_APP']?>/Public/admin/assets/images/logo-geeduc-sem-fundo.png" class="img-fluid dash-logo" alt="Dashboard" />
+                        <img src="<?=$_ENV['URL_PREFIX_APP']?>/Public/admin/assets/images/logo-ligth-rm-bg.png" class="img-fluid dash-logo" alt="Dashboard" />
                     </a>
                   </div>
                   <!-- App brand ends -->
@@ -87,7 +86,7 @@
                     </div>
 
                     <!-- Toggle Menu starts -->
-                    <button class="btn btn-warning btn-sm ms-3 d-lg-none d-md-block" type="button"
+                    <button class="btn btn-warning btn-sm ms-3 d-lg-none d-md-block position-relative mt-3" type="button"
                       data-bs-toggle="offcanvas" data-bs-target="#MobileMenu">
                       <i class="icon-menu"></i>
                     </button>

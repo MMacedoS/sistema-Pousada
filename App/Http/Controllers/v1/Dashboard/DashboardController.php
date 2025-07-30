@@ -5,10 +5,8 @@ namespace App\Http\Controllers\v1\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Request\Request;
 
-class DashboardController extends Controller {
-  
-    public $router;
-
+class DashboardController extends Controller 
+{  
     public function __construct() {
         parent::__construct();  
     }

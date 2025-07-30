@@ -2,13 +2,17 @@
 
 namespace App\Config;
 
+use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Repositories\Contracts\File\IArquivoRepository;
 use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
+use App\Repositories\Contracts\Settings\IConfiguracaoRepository;
 use App\Repositories\Contracts\User\IUsuarioRepository;
+use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Person\PessoaFisicaRepository;
+use App\Repositories\Entities\Settings\ConfiguracaoRepository;
 use App\Repositories\Entities\User\UsuarioRepository;
 
 class AppServiceProvider 
@@ -42,6 +46,18 @@ class AppServiceProvider
             ->set(
                 IUsuarioRepository::class,
                 new UsuarioRepository()
+            );
+
+        $this->container
+            ->set(
+                IConfiguracaoRepository::class,
+                new ConfiguracaoRepository()
+            );
+
+        $this->container
+            ->set(
+                IApartamentoRepository::class,
+                new ApartamentoRepository()
             );
     }
 
