@@ -1,6 +1,16 @@
 <?php
-
 namespace App\Config;
+        
+
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Content-Type: application/json; charset=UTF-8");
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+}
 
 use App\Http\Request\Request;
 
@@ -24,27 +34,32 @@ class Router {
 
         $normalizedRequestUri = $this->normalizePath($requestUri);
 
-        if (isset($this->routers[$httpMethod])) {
-            foreach ($this->routers[$httpMethod] as $path => $route) {
-                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $path);
-                $pattern = '/^' . str_replace('/', '\/', $pattern) . '$/';
+        // Verifica se a rota existe
+        foreach ($this->routers[$httpMethod] as $path => $route) {
+            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $path);
+            $pattern = '/^' . str_replace('/', '\/', $pattern) . '$/';
 
-                if (preg_match($pattern, $normalizedRequestUri, $matches)) {
-                    // Verifica autenticação
-                    if (!is_null($route['auth']) && !$route['auth']->check()) {
-                        return $this->view('Login/index', ['message' => 'Deslogado', 'danger' => true]);
-                    }
+            if (preg_match($pattern, $normalizedRequestUri, $matches)) {
+                array_shift($matches); // Remove o caminho completo
+                $params = $matches;
 
-                    // Executa o callback
-                    array_shift($matches); 
-                    return call_user_func_array($route['callback'], array_merge([$request], $matches));
+                $token = $request->getAuthorization();
+
+                // Verifica autenticação
+                if (!is_null($route['auth']) && !$route['auth']->isValidToken($token)) {
+                    http_response_code(401);
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Unauthorized'
+                    ]);
+                    return;
                 }
-            }
-        }
 
-        // Nenhuma rota encontrada
-        http_response_code(404);
-        $this->redirect('not-found');
+                // Executa o callback da rota
+                return call_user_func_array($route['callback'], array_merge([$request], $params));
+            }
+        }            
+
     }
 
     private function normalizePath($path) {
@@ -72,5 +87,17 @@ class Router {
     {
         $session = new Session();
         return $session->get('user');
+    }
+
+    public function permissionUserLogged()
+    {
+        $session = new Session();
+        return $session->get('my_permissions');
+    }
+
+    public function fileUserLogged()
+    {
+        $session = new Session();
+        return $session->get('files');
     }
 }

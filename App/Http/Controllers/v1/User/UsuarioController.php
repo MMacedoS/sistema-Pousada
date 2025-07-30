@@ -51,7 +51,7 @@ class UsuarioController extends Controller
         $paginatedBoards = $paginator->getPaginatedItems();
 
         return $this->router->view('Profile/index', [
-            'active' => 'register',
+            'active' => 'settings',
             'usuarios' => $paginatedBoards,
             'links' => $paginator->links(),
             'searchFilter' => $params['name_email'] ?? null,
@@ -65,7 +65,7 @@ class UsuarioController extends Controller
             return $this->router->redirect('usuario?error=422');
         }
 
-        return $this->router->view('Profile/create', ['active' => 'register']);
+        return $this->router->view('Profile/create', ['active' => 'settings']);
     }
 
     public function store(Request $request) {
@@ -83,7 +83,7 @@ class UsuarioController extends Controller
             return $this->router->view(
                 'user/create', 
                 [
-                    'active' => 'register', 
+                    'active' => 'settings', 
                     'errors' => $validator->getErrors()
                 ]
             );
@@ -92,7 +92,7 @@ class UsuarioController extends Controller
         $created = $this->usuarioRepository->create($data);
 
         if(is_null($created)) {            
-        return $this->router->view('Profile/create', ['active' => 'register', 'danger' => true]);
+        return $this->router->view('Profile/create', ['active' => 'settings', 'danger' => true]);
         }
 
         return $this->router->redirect('users/');
@@ -107,10 +107,10 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('profile/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('profile/', ['active' => 'settings', 'danger' => true]);
         }
 
-        return $this->router->view('Profile/edit', ['active' => 'register', 'usuario' => $usuario]);
+        return $this->router->view('Profile/edit', ['active' => 'settings', 'usuario' => $usuario]);
     }
 
     public function update(Request $request, $id) 
@@ -118,7 +118,7 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioRepository->findByUuid($id);
 
         if (is_null($usuario)) {
-            return $this->router->view('usuario/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('usuario/', ['active' => 'settings', 'danger' => true]);
         }
 
         $data = $request->getBodyParams();
@@ -134,7 +134,7 @@ class UsuarioController extends Controller
             return $this->router->view(
                 'Profile/edit', 
                 [
-                    'active' => 'register', 
+                    'active' => 'settings', 
                     'errors' => $validator->getErrors()
                 ]
             );
@@ -143,7 +143,7 @@ class UsuarioController extends Controller
         $updated = $this->usuarioRepository->update($data, $usuario->id);
         
         if(is_null($updated)) {            
-        return $this->router->view('Profile/edit', ['active' => 'register', 'danger' => true]);
+        return $this->router->view('Profile/edit', ['active' => 'settings', 'danger' => true]);
         }
 
         return $this->router->redirect('users/');
@@ -169,7 +169,7 @@ class UsuarioController extends Controller
         $updated = $this->usuarioRepository->updatePassword($data, $personAuth->usuario_id);
         
         $arquivo = $_SESSION['files'];
-        return $this->router->view('Profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
+        return $this->router->view('Profile/profile', ['active' => 'settings', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
     } 
 
     public function delete(Request $request, $id) 
@@ -235,7 +235,7 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('Profile/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('Profile/', ['active' => 'settings', 'danger' => true]);
         }
 
         $permissoes = $this->permissaoRepository->all();
@@ -243,7 +243,7 @@ class UsuarioController extends Controller
 
         return $this->router->view('Profile/permission', 
             [
-                'active' => 'register',  
+                'active' => 'settings',  
                 'usuario' => $usuario, 
                 'permissions_user' => $permissao, 
                 'permissions' => $permissoes
@@ -257,7 +257,7 @@ class UsuarioController extends Controller
         $usuario = $this->usuarioRepository->findByUuid($id);
         
         if (is_null($usuario)) {
-            return $this->router->view('Profile/', ['active' => 'register', 'danger' => true]);
+            return $this->router->view('Profile/', ['active' => 'settings', 'danger' => true]);
         }
 
         $permissao = $this->usuarioRepository->addPermissions($data, $usuario->id);
@@ -270,7 +270,7 @@ class UsuarioController extends Controller
         $personAuth = $this->authUser();
         $arquivo = $_SESSION['files'];
      
-        return $this->router->view('Profile/profile', ['active' => 'register', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
+        return $this->router->view('Profile/profile', ['active' => 'settings', 'pessoa' => $personAuth, 'arquivo' => $arquivo]);
     }
 
     public function profileUploadPhoto(Request $request) 

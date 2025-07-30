@@ -4,7 +4,8 @@
     <div class="card-body">
       <div class="m-0">
         <label class="form-label">Nome Completo</label>
-        <input type="text" step="0" min="1" class="form-control" name="name" placeholder="digite aqui" value="<?=$usuario->name ?? ''?>" />
+        <input type="text" step="0" min="1" class="form-control rounded-3" name="name" id="name" placeholder="digite aqui" value="<?=$usuario->name ?? ''?>" />
+        <div class="invalid-feedback" id="name_error"></div>
       </div>
     </div>
   </div>
@@ -15,7 +16,8 @@
     <div class="card-body">
       <div class="m-0">
         <label class="form-label">Email</label>
-        <input type="email" step="0" min="1" class="form-control" name="email" placeholder="digite aqui" value="<?=$usuario->email ?? ''?>" />
+        <input type="email" step="0" min="1" class="form-control rounded-3" name="email" id="email" placeholder="digite aqui" value="<?=$usuario->email ?? ''?>" />
+        <div class="invalid-feedback" id="email_error"></div>
       </div>
     </div>
   </div>
