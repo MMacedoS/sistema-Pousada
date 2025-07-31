@@ -221,6 +221,12 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             $this->assignPermissionsToUser($userFromDb);
 
             $this->pessoaFisicaRepository->updateByUser($data, $userFromDb->id);
+            
+            if(isset($userFromDb->password)) {
+                $userFromDb->id = $userFromDb->uuid;
+                unset($userFromDb->password);
+                unset($userFromDb->uuid);
+            }
 
             return $userFromDb;
         } catch (\Throwable $th) {
@@ -238,7 +244,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             return null; 
         }
 
-        if (!password_verify($data['password_old'], $existingUser->senha)) {
+        if (!password_verify($data['password_old'], $existingUser->password)) {
             return null;
         }
 
