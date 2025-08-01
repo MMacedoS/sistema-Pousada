@@ -14,6 +14,7 @@ class Usuario
     public ?string $name;
     public ?string $email; 
     public ?string $arquivo_id;
+    public ?string $photo;
     public ?string $password;
     public ?string $send_access;
     public ?string $access;

@@ -30,7 +30,7 @@ class TokenController extends Auth
         if (!$request->getJsonBody()) {
             http_response_code(400);
             echo json_encode([
-                'status' => 'error',
+                'status' => 400,
                 'message' => 'Invalid request body'
             ]);
             return;
@@ -45,7 +45,7 @@ class TokenController extends Auth
         if (!$user) {
             http_response_code(401);
             echo json_encode([
-                'status' => 'error',
+                'status' => 401,
                 'message' => 'Invalid email or password'
             ]);
             return;
@@ -53,8 +53,10 @@ class TokenController extends Auth
 
         // Generate and return the token
         $token = $this->generateToken($user);
+
+        $user = $this->usuarioRepository->findByIdWithPhoto((int)$user->code);
         echo json_encode([
-            'status' => 'success',
+            'status' => 200,
             'token' => $token,
             'user' => $user
         ]);

@@ -13,6 +13,7 @@ class Arquivo {
     public $nome_original;
     public $ext_arquivo;
     public $path;
+    public $active;
     public $created_at;
     public $updated_at;
 

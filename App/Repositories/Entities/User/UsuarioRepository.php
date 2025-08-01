@@ -152,6 +152,27 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         }
     }
 
+    public function findByIdWithPhoto(int $id)
+    {
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT u.name, u.email, u.access, u.active, u.arquivo_id, u.id as code, u.uuid as id, a.path as photo  FROM " 
+                . self::TABLE . 
+                " u LEFT JOIN arquivos a on a.id = u.arquivo_id 
+                WHERE u.id = :id LIMIT 1"
+            );
+            $stmt->execute([':id' => $id]);
+            $stmt->setFetchMode(\PDO::FETCH_CLASS, self::CLASS_NAME);
+
+            return $stmt->fetch() ?: null;
+        } catch (\Throwable $th) {
+            LoggerHelper::logInfo($th->getMessage());
+            return null;
+        } finally {          
+            Database::getInstance()->closeConnection();
+        }
+    }
+
     public function findByEmailAndSector(string $email)
     {
         try {
@@ -216,11 +237,11 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
                 return null;
             }
             
-            $userFromDb = $this->findById($id);
+            $userFromDb = $this->findByIdWithPhoto($id);
 
             $this->assignPermissionsToUser($userFromDb);
 
-            $this->pessoaFisicaRepository->updateByUser($data, $userFromDb->id);
+            $this->pessoaFisicaRepository->updateByUser($data, $userFromDb->code);
             
             if(isset($userFromDb->password)) {
                 $userFromDb->id = $userFromDb->uuid;
@@ -257,28 +278,33 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             return null;
         }
     
-        $stmt = $this->conn->prepare(
-            "SELECT id as code, password, name, email, access, active, arquivo_id, uuid as id 
-             FROM " . self::TABLE . " 
-             WHERE email = :email"
-        );
-        $stmt->bindValue(':email', $email);
-        $stmt->execute();
-    
-        $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, self::CLASS_NAME);
-        $user = $stmt->fetch();
-    
-        if (!$user) {
-            return null;
-        }
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT id as code, password, name, email, access, active, arquivo_id, uuid as id 
+                    FROM " . self::TABLE . " 
+                    WHERE email = :email"
+            );
+            $stmt->bindValue(':email', $email);
+            $stmt->execute();
 
-        if (!password_verify($senha, $user->password)) {
-            return null;
-        }       
-    
-        unset($user->uuid, $user->password);
-    
-        return $user;
+            $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, self::CLASS_NAME);
+            $user = $stmt->fetch();
+
+            if (!$user) {
+                return null;
+            }
+
+            if (!password_verify($senha, $user->password)) {
+                return null;
+            }       
+
+            unset($user->uuid, $user->password);
+
+            return $user;
+        } catch (\Throwable $th) {
+            //throw $th;
+            dd($th->getMessage());
+        }
     }    
 
     public function delete(int $id) 
@@ -426,7 +452,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
 
         $permissionIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
-        $this->addPermissions(['permissions' => $permissionIds], $userFromDb->id);
+        $this->addPermissions(['permissions' => $permissionIds], $userFromDb->code ?? $userFromDb->id);
 
         return $userFromDb;
     }
@@ -442,9 +468,14 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
              WHERE id = :id"
         );
 
-        $updated = $stmt->execute([':id' => $id_user, ':file_id' => $file->id]);
+        $updated = $stmt->execute(
+            [
+                ':id' => $id_user, 
+                ':file_id' => $file->id
+            ]
+        );
 
-        return $file;
+        return $this->findByIdWithPhoto($id_user);
     }
 
     private function permissionList($role)

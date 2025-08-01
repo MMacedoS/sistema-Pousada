@@ -83,6 +83,7 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
             $archiveFromDb = $this->findByUuid($file->uuid);
             return $archiveFromDb;
         } catch(\Throwable $th){
+            dd($th->getMessage());
             return null;
         } finally{
             Database::getInstance()->closeConnection();

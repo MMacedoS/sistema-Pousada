@@ -10,6 +10,8 @@ interface IUsuarioRepository {
 
     public function findByEmail(string $email);
 
+    public function findByIdWithPhoto(int $id);
+
     public function findByEmailAndSector(string $email);
 
     public function update(array $data, int $id);

@@ -49,7 +49,7 @@ class Router {
                 if (!is_null($route['auth']) && !$route['auth']->isValidToken($token)) {
                     http_response_code(401);
                     echo json_encode([
-                        'status' => 'error',
+                        'status' => 401,
                         'message' => 'Unauthorized'
                     ]);
                     return;

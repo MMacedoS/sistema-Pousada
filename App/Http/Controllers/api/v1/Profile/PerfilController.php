@@ -61,6 +61,11 @@ class PerfilController extends Controller
     public function passwordUpdate(Request $request, string $id)
     {
         $user = $this->usuarioRepository->findByUuid($id);
+        
+        if(is_null($user)) {
+            return $this->responseJson("usuario não encontrado", 422);
+        }
+
         $data = $request->getJsonBody();
 
         $updated = $this->usuarioRepository->updatePassword($data, $user->id);
@@ -71,4 +76,31 @@ class PerfilController extends Controller
 
         $this->responseJson($updated, 202);
     } 
+
+    public function uploadPhoto(Request $request, string $id) 
+    { 
+       if (!isset($_FILES['file'])) {
+            return $this->responseJson("Arquivo não enviado", 400);
+        }
+
+        $data = $request->getBodyParams();
+
+        if(isset($_FILES['file'])){
+            $data['file'] = $_FILES['file'];
+        }
+        
+        $dir = '/files/profile/';
+
+        $user = $this->usuarioRepository->findByUuid($id);
+        
+        if (is_null($user)) {
+            return $this->responseJson("Usuário não encontrado", 422);
+        }
+
+        $dir = '/files/profile/';
+
+        $fileUploaded = $this->usuarioRepository->updatePhoto($data, $dir, $user->id);
+        
+        $this->responseJson($fileUploaded, 202);
+    }
 }
