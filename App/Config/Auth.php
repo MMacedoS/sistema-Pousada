@@ -71,19 +71,27 @@ class Auth {
         return $_SESSION['user'] ?? null;
     }
 
-    public function generateToken($username) {
-        if (is_null($username)) {
-            return false; 
-        }
+    public function generateTokens($user)
+    {
+        $secret = $_ENV['SECRET_KEY'];
+        $issuer = $_ENV['URL_PREFIX_APP']; 
 
-        $payload = [
-            'person' => (array)$username,
-            'iat' => time(),
-            'exp' => time() + $this->sessionTimeout,
+        $accessPayload = [
+            'iss' => $issuer,
+            'sub' => $user->code,
+            'exp' => time() + 900, // 15 minutos
         ];
 
-        $token = JWT::encode($payload, $_ENV['SECRET_KEY'],'HS256');   
-        return $token;
+        $refreshPayload = [
+            'iss' => $issuer,
+            'sub' => $user->code,
+            'exp' => time() + (60 * 60 * 24 * 7), // 7 dias
+        ];
+
+        return [
+            'access_token' => JWT::encode($accessPayload, $secret, 'HS256'),
+            'refresh_token' => JWT::encode($refreshPayload, $secret, 'HS256'),
+        ];
     }
 
     public function isValidToken($token) {
@@ -92,14 +100,17 @@ class Auth {
         }
 
         try {
-               $decoded = JWT::decode($token, new Key($_ENV['SECRET_KEY'], 'HS256'));
+            $decoded = JWT::decode($token, new Key($_ENV['SECRET_KEY'], 'HS256'));
             
-               if (!isset($decoded->person)) {
-                   return null;
-               }
+            // Confirma se o token tem o campo 'sub'
+            if (!isset($decoded->sub)) {
+                return null;
+            }
+
             return $decoded;
         } catch (\Exception $e) {
-            return null; 
+            return null;
         }
     }
+
 }
