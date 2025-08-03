@@ -8,18 +8,49 @@ class Paginator {
     protected $currentPage;
     protected $totalItems;
     protected $totalPages;
+    protected $lastPage;
 
-    public function __construct(array $items, int $perPage = 10, int $currentPage = 1) {
+    public function __construct(array $items, int $perPage = 2, int $currentPage = 1) {
         $this->items = $items;
         $this->perPage = $perPage;
-        $this->currentPage = $currentPage;
         $this->totalItems = count($items);
-        $this->totalPages = ceil($this->totalItems / $this->perPage);
+        $this->lastPage = (int) ceil($this->totalItems / $this->perPage);
+        $this->currentPage = max(1, min($currentPage, $this->lastPage));
     }
 
     public function getPaginatedItems() {
         $start = ($this->currentPage - 1) * $this->perPage;
         return array_slice($this->items, $start, $this->perPage);
+    }
+
+    public function currentPage(): int
+    {
+        return $this->currentPage;
+    }
+
+    public function perPage(): int
+    {
+        return $this->perPage;
+    }
+
+    public function totalItems(): int
+    {
+        return $this->totalItems;
+    }
+
+    public function lastPage(): int
+    {
+        return $this->lastPage;
+    }
+
+    public function hasPreviousPage(): bool
+    {
+        return $this->currentPage > 1;
+    }
+
+    public function hasNextPage(): bool
+    {
+        return $this->currentPage < $this->lastPage;
     }
 
     public function links() {

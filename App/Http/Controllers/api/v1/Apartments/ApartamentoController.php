@@ -19,20 +19,30 @@ class ApartamentoController extends Controller
         $this->apartamentoRepository = $apartamentoRepository;
     }
 
-    public function index(Request $request)
+   public function index(Request $request)
     {
-       $apartamentos = $this->apartamentoRepository->all();
-        $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 10;
+        $apartamentos = $this->apartamentoRepository->all();
+        
+        $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 2;
         $currentPage = $request->getParam('page') ? (int)$request->getParam('page') : 1;
+
         $paginator = new Paginator($apartamentos, $perPage, $currentPage);
         $paginatedApartamentos = $paginator->getPaginatedItems();
 
-        $data = [
-            'apartamentos' => $paginatedApartamentos,
-            'links' => $paginator->links()
+        // Adiciona dados estruturados da paginação
+        $paginationData = [
+            'current_page' => $paginator->currentPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->totalItems(),
+            'last_page' => $paginator->lastPage(),
+            'has_previous_page' => $paginator->hasPreviousPage(),
+            'has_next_page' => $paginator->hasNextPage(),
         ];
 
-        return $this->responseJson($data, 200);
+        return $this->responseJson([
+            'apartamentos' => $paginatedApartamentos,
+            'pagination' => $paginationData
+        ], 200);
     }
 
     public function store(Request $request)
