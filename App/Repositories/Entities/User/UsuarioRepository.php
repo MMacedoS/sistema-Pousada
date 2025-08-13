@@ -13,16 +13,18 @@ use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 use PDO;
 
-class UsuarioRepository extends SingletonInstance implements IUsuarioRepository {
+class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
+{
     private const CLASS_NAME = Usuario::class;
     private const TABLE = 'usuarios';
-    
+
     use FindTrait;
     private $permissioRepository;
     protected $arquivoRepository;
     protected $pessoaFisicaRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->conn = Database::getInstance()->getConnection();
         $this->model = new Usuario();
         $this->permissioRepository = PermissaoRepository::getInstance();
@@ -70,13 +72,13 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
 
         $stmt->execute($bindings);
 
-        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);  
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     public function create(array $data, bool $forceNewPassword = true)
-    {   
+    {
         $existingUser = $this->findByEmailAndSector($data['email']);
-        
+
         if (!is_null($existingUser)) {
             return $existingUser;
         }
@@ -88,15 +90,16 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         $this->conn->beginTransaction();
         try {
             $stmt = $this->conn
-            ->prepare(
-                "INSERT INTO " . self::TABLE . " 
+                ->prepare(
+                    "INSERT INTO " . self::TABLE . " 
                   set 
                     uuid = :uuid,
                     name = :name, 
                     email = :email, 
                     access = :access,
                     password = :password
-            ");
+            "
+                );
             $create = $stmt->execute([
                 ':uuid' => $user->uuid,
                 ':name' => $user->name,
@@ -104,7 +107,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
                 ':email' => $user->email,
                 ':password' => $user->password
             ]);
-    
+
             if (is_null($create)) {
                 $this->conn->rollBack();
                 return null;
@@ -112,10 +115,10 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
 
             $userFromDb = $this->findByUuid($user->uuid);
 
-            $this->assignPermissionsToUser($userFromDb); 
-            
+            $this->assignPermissionsToUser($userFromDb);
+
             $data['usuario_id'] = $userFromDb->id;
-            
+
             $person = $this->pessoaFisicaRepository->create($data);
 
             if (is_null($person)) {
@@ -129,7 +132,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             $this->conn->rollBack();
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
@@ -147,7 +150,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
@@ -156,9 +159,9 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
     {
         try {
             $stmt = $this->conn->prepare(
-                "SELECT u.name, u.email, u.access, u.active, u.arquivo_id, u.id as code, u.uuid as id, a.path as photo  FROM " 
-                . self::TABLE . 
-                " u LEFT JOIN arquivos a on a.id = u.arquivo_id 
+                "SELECT u.name, u.email, u.access, u.active, u.arquivo_id, u.id as code, u.uuid as id, a.path as photo  FROM "
+                    . self::TABLE .
+                    " u LEFT JOIN arquivos a on a.id = u.arquivo_id 
                 WHERE u.id = :id LIMIT 1"
             );
             $stmt->execute([':id' => $id]);
@@ -168,7 +171,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
@@ -186,7 +189,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
@@ -195,17 +198,17 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
     {
         $existingUser = $this->findById($id);
         if (!$existingUser) {
-            return null; 
+            return null;
         }
 
         $data['existing_password'] = $existingUser->password;
         isset($data['password']) ? $password = (string)$data['password'] : $password = $existingUser->password;
         $user = $this->model
             ->update(
-                $data, 
-                $existingUser, 
+                $data,
+                $existingUser,
                 !hash_equals(
-                    $password, 
+                    $password,
                     $existingUser->password
                 )
             );
@@ -236,14 +239,14 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             if (!$updated) {
                 return null;
             }
-            
+
             $userFromDb = $this->findByIdWithPhoto($id);
 
             $this->assignPermissionsToUser($userFromDb);
 
             $this->pessoaFisicaRepository->updateByUser($data, $userFromDb->code);
-            
-            if(isset($userFromDb->password)) {
+
+            if (isset($userFromDb->password)) {
                 $userFromDb->id = $userFromDb->uuid;
                 unset($userFromDb->password);
                 unset($userFromDb->uuid);
@@ -253,16 +256,16 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage() . $th->getFile() . $th->getLine());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
 
-    public function updatePassword(array $data, int $id) 
+    public function updatePassword(array $data, int $id)
     {
         $existingUser = $this->findById($id);
         if (!$existingUser) {
-            return null; 
+            return null;
         }
 
         if (!password_verify($data['password_old'], $existingUser->password)) {
@@ -277,7 +280,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         if (empty($email) || empty($senha)) {
             return null;
         }
-    
+
         try {
             $stmt = $this->conn->prepare(
                 "SELECT id as code, password, name, email, access, active, arquivo_id, uuid as id 
@@ -296,7 +299,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
 
             if (!password_verify($senha, $user->password)) {
                 return null;
-            }       
+            }
 
             unset($user->uuid, $user->password);
 
@@ -305,58 +308,58 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             //throw $th;
             dd($th->getMessage());
         }
-    }    
+    }
 
-    public function delete(int $id) 
+    public function delete(int $id)
     {
         $stmt = $this->conn
-        ->prepare(
-            "UPDATE " . self::TABLE . " 
+            ->prepare(
+                "UPDATE " . self::TABLE . " 
              SET active = 0 
              WHERE id = :id"
-        );
+            );
 
         $updated = $stmt->execute([':id' => $id]);
 
         return $updated;
     }
 
-    public function active($id) :?bool 
-    {        
+    public function active($id): ?bool
+    {
         $usuario = $this->findById((int)$id);
-        
+
         if (is_null($usuario)) {
             return null;
         }
-        
+
         try {
             $stmt = $this->conn->prepare("UPDATE " . self::TABLE . " SET active=:active WHERE id = :id");
             $actived = $stmt->execute([
                 ':active' => 1,
                 ':id' => $id
             ]);
-            if($actived) {
+            if ($actived) {
                 return true;
             }
             return false;
-        } catch(\Throwable $th) {
+        } catch (\Throwable $th) {
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
 
-    public function remove($id) :?bool 
-    {        
+    public function remove($id): ?bool
+    {
         $usuario = $this->findById((int)$id);
-        
+
         if (is_null($usuario)) {
             return null;
         }
 
         try {
-            if(!$this->removePermissions($id)) {
+            if (!$this->removePermissions($id)) {
                 return null;
             };
 
@@ -364,34 +367,35 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
             $delete = $stmt->execute([
                 ':id' => $id
             ]);
-            if($delete) {
+            if ($delete) {
                 return true;
             }
             return false;
-        } catch(\Throwable $th) {
+        } catch (\Throwable $th) {
             LoggerHelper::logInfo("Erro na transação delete: {$th->getMessage()}");
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
 
-    public function findPermissions(int $usuario_id) 
+    public function findPermissions(int $usuario_id)
     {
         $stmt = $this->conn
             ->prepare(
                 "SELECT permissao_as_usuario.* 
                 FROM permissao_as_usuario 
-                where usuario_id = :usuario_id");
+                where usuario_id = :usuario_id"
+            );
         $stmt->bindValue(':usuario_id', $usuario_id);
         $stmt->execute();
-        $user_permissions = $stmt->fetchAll(\PDO::FETCH_ASSOC); 
+        $user_permissions = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return $user_permissions;
     }
 
-    public function addPermissions(array $data, int $id): bool 
+    public function addPermissions(array $data, int $id): bool
     {
         if (empty($data['permissions']) || $id <= 0) {
             return false;
@@ -406,7 +410,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
                 "INSERT INTO permissao_as_usuario (permissao_id, usuario_id) 
                 VALUES (:permissao_id, :usuario_id)"
             );
-            
+
             $success = $stmt->execute([
                 ':permissao_id' => (int)$permission,
                 ':usuario_id' => (int)$id
@@ -420,7 +424,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         return true;
     }
 
-    public function removePermissions(int $usuario_id): bool 
+    public function removePermissions(int $usuario_id): bool
     {
         $stmt = $this->conn->prepare(
             "DELETE FROM permissao_as_usuario WHERE usuario_id = :usuario_id"
@@ -433,7 +437,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
     private function assignPermissionsToUser(Usuario $userFromDb)
     {
         $access = !is_null($userFromDb->access) ? $userFromDb->access : null;
-        
+
         $permissions = $this->permissionList($access);
 
         if (is_null($permissions)) {
@@ -451,7 +455,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         $stmt->execute($permissionNames);
 
         $permissionIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
+
         $this->addPermissions(['permissions' => $permissionIds], $userFromDb->code ?? $userFromDb->id);
 
         return $userFromDb;
@@ -462,15 +466,15 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         $file = $this->arquivoRepository->create($file, $dir);
 
         $stmt = $this->conn
-        ->prepare(
-            "UPDATE " . self::TABLE . " 
+            ->prepare(
+                "UPDATE " . self::TABLE . " 
              SET arquivo_id = :file_id 
              WHERE id = :id"
-        );
+            );
 
         $updated = $stmt->execute(
             [
-                ':id' => $id_user, 
+                ':id' => $id_user,
                 ':file_id' => $file->id
             ]
         );
@@ -483,67 +487,148 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository 
         if ($role == 'administrador') {
             // Acesso total ao sistema
             return [
-                ['name' => 'gerenciar_usuarios'],
-                ['name' => 'visualizar_reservas'],
-                ['name' => 'gerenciar_reservas'],
-                ['name' => 'gerenciar_quartos'],
-                ['name' => 'gerenciar_clientes'],
-                ['name' => 'visualizar_financeiro'],
-                ['name' => 'gerenciar_pagamentos'],
-                ['name' => 'gerenciar_funcionarios'],
-                ['name' => 'gerenciar_comandas'],
-                ['name' => 'visualizar_dashboard'],
-                ['name' => 'gerenciar_hotel'],
-                ['name' => 'visualizar_comandas'],
-                ['name' => 'gerenciar_comandas'],
-                ['name' => 'registrar_pagamentos_bar'],
-                ['name' => 'abrir_comanda'],
-                ['name' => 'fechar_comanda'],
-
+                ['name' => 'users.view'],
+                ['name' => 'users.create'],
+                ['name' => 'users.edit'],
+                ['name' => 'users.delete'],
+                ['name' => 'reservations.view'],
+                ['name' => 'reservations.create'],
+                ['name' => 'reservations.edit'],
+                ['name' => 'reservations.cancel'],
+                ['name' => 'reservations.checkin'],
+                ['name' => 'reservations.checkout'],
+                ['name' => 'apartments.view'],
+                ['name' => 'apartments.create'],
+                ['name' => 'apartments.edit'],
+                ['name' => 'apartments.delete'],
+                ['name' => 'apartments.status'],
+                ['name' => 'customers.view'],
+                ['name' => 'customers.create'],
+                ['name' => 'customers.edit'],
+                ['name' => 'customers.delete'],
+                ['name' => 'cashbox.view'],
+                ['name' => 'cashbox.open'],
+                ['name' => 'cashbox.close'],
+                ['name' => 'cashbox.transactions'],
+                ['name' => 'financial.reports'],
+                ['name' => 'sales.view'],
+                ['name' => 'sales.create'],
+                ['name' => 'sales.cancel'],
+                ['name' => 'bar.sales'],
+                ['name' => 'bar.inventory'],
+                ['name' => 'products.view'],
+                ['name' => 'products.create'],
+                ['name' => 'products.edit'],
+                ['name' => 'products.delete'],
+                ['name' => 'reports.reservations'],
+                ['name' => 'reports.financial'],
+                ['name' => 'reports.occupancy'],
+                ['name' => 'reports.customers'],
+                ['name' => 'settings.view'],
+                ['name' => 'settings.edit'],
+                ['name' => 'permissions.manage'],
+                ['name' => 'dashboard.admin'],
+                ['name' => 'dashboard.manager'],
+                ['name' => 'dashboard.reception'],
             ];
         }
 
         if ($role == 'gerente') {
             // Gestão operacional e supervisão
             return [
-                ['name' => 'visualizar_reservas'],
-                ['name' => 'gerenciar_reservas'],
-                ['name' => 'gerenciar_quartos'],
-                ['name' => 'gerenciar_clientes'],
-                ['name' => 'visualizar_financeiro'],
-                ['name' => 'gerenciar_comandas'],
-                ['name' => 'gerenciar_pagamentos'],
-                ['name' => 'acessar_dashboard'],
-                ['name' => 'abrir_comanda'],
-                ['name' => 'fechar_comanda'],
+                ['name' => 'users.view'],
+                ['name' => 'users.create'],
+                ['name' => 'users.edit'],
+                ['name' => 'reservations.view'],
+                ['name' => 'reservations.create'],
+                ['name' => 'reservations.edit'],
+                ['name' => 'reservations.cancel'],
+                ['name' => 'reservations.checkin'],
+                ['name' => 'reservations.checkout'],
+                ['name' => 'apartments.view'],
+                ['name' => 'apartments.create'],
+                ['name' => 'apartments.edit'],
+                ['name' => 'apartments.status'],
+                ['name' => 'customers.view'],
+                ['name' => 'customers.create'],
+                ['name' => 'customers.edit'],
+                ['name' => 'cashbox.view'],
+                ['name' => 'cashbox.open'],
+                ['name' => 'cashbox.close'],
+                ['name' => 'financial.reports'],
+                ['name' => 'sales.view'],
+                ['name' => 'sales.create'],
+                ['name' => 'sales.cancel'],
+                ['name' => 'products.view'],
+                ['name' => 'products.create'],
+                ['name' => 'products.edit'],
+                ['name' => 'reports.reservations'],
+                ['name' => 'reports.financial'],
+                ['name' => 'reports.occupancy'],
+                ['name' => 'reports.customers'],
+                ['name' => 'settings.view'],
+                ['name' => 'dashboard.admin'],
+                ['name' => 'dashboard.manager'],
             ];
         }
 
         if ($role == 'recepcionista') {
             // Atendimento ao cliente e registro de reservas
             return [
-                ['name' => 'visualizar_reservas'],
-                ['name' => 'gerenciar_reservas'],
-                ['name' => 'gerenciar_clientes'],
-                ['name' => 'gerenciar_pagamentos'],
-                ['name' => 'gerenciar_comandas'],
-                ['name' => 'abrir_comanda'],
-                ['name' => 'fechar_comanda'],
+                ['name' => 'reservations.view'],
+                ['name' => 'reservations.create'],
+                ['name' => 'reservations.edit'],
+                ['name' => 'reservations.checkin'],
+                ['name' => 'reservations.checkout'],
+                ['name' => 'apartments.view'],
+                ['name' => 'apartments.status'],
+                ['name' => 'customers.view'],
+                ['name' => 'customers.create'],
+                ['name' => 'customers.edit'],
+                ['name' => 'sales.view'],
+                ['name' => 'sales.create'],
+                ['name' => 'reports.reservations'],
+                ['name' => 'reports.occupancy'],
+                ['name' => 'dashboard.reception'],
             ];
         }
 
-        if ($role == 'recepcionista_bar') {
+        if ($role == 'caixa') {
+            // Operações de caixa e financeiro
+            return [
+                ['name' => 'reservations.view'],
+                ['name' => 'reservations.checkout'],
+                ['name' => 'customers.view'],
+                ['name' => 'cashbox.view'],
+                ['name' => 'cashbox.open'],
+                ['name' => 'cashbox.close'],
+                ['name' => 'cashbox.transactions'],
+                ['name' => 'sales.view'],
+                ['name' => 'sales.create'],
+                ['name' => 'sales.cancel'],
+                ['name' => 'products.view'],
+                ['name' => 'reports.financial'],
+                ['name' => 'dashboard.reception'],
+            ];
+        }
+
+        if ($role == 'bar' || $role == 'recepcionista_bar') {
             // Acesso restrito ao controle do bar
             return [
-                ['name' => 'visualizar_comandas'],
-                ['name' => 'abrir_comanda'],
-                ['name' => 'fechar_comanda'],
-                ['name' => 'registrar_pagamentos_bar'],
+                ['name' => 'customers.view'],
+                ['name' => 'sales.view'],
+                ['name' => 'sales.create'],
+                ['name' => 'sales.cancel'],
+                ['name' => 'bar.sales'],
+                ['name' => 'bar.inventory'],
+                ['name' => 'products.view'],
+                ['name' => 'cashbox.view'],
+                ['name' => 'cashbox.transactions'],
+                ['name' => 'dashboard.reception'],
             ];
         }
 
         // Caso não se enquadre em nenhum perfil conhecido
         return [];
     }
-
 }

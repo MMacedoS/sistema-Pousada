@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api\v1\Apartments;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\v1\Traits\GenericTrait;
+use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Utils\Paginator;
@@ -11,7 +12,7 @@ use App\Utils\Validator;
 
 class ApartamentoController extends Controller
 {
-    use GenericTrait;
+    use GenericTrait, HasPermissions;
     protected $apartamentoRepository;
 
     public function __construct(IApartamentoRepository $apartamentoRepository)
@@ -19,10 +20,12 @@ class ApartamentoController extends Controller
         $this->apartamentoRepository = $apartamentoRepository;
     }
 
-   public function index(Request $request)
+    public function index(Request $request)
     {
+        $this->checkPermission('apartments.view');
+
         $apartamentos = $this->apartamentoRepository->all();
-        
+
         $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 2;
         $currentPage = $request->getParam('page') ? (int)$request->getParam('page') : 1;
 
@@ -47,14 +50,15 @@ class ApartamentoController extends Controller
 
     public function store(Request $request)
     {
+        $this->checkPermission('apartments.create');
+
         $data = $request->getJsonBody();
-        
+
         $validator = new Validator($data);
 
         $rules = [
             'name' => 'required|min:1|max:45',
             'category' => 'required',
-            'active' => 'required',
             'description' => 'required',
             'situation' => 'required'
         ];
@@ -81,6 +85,8 @@ class ApartamentoController extends Controller
 
     public function show(Request $request, string $id)
     {
+        $this->checkPermission('apartments.view');
+
         $apartamento = $this->apartamentoRepository->findByUuid($id);
 
         if (is_null($apartamento)) {
@@ -95,16 +101,17 @@ class ApartamentoController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $this->checkPermission('apartments.edit');
+
         $apartamento = $this->apartamentoRepository->findByUuid($id);
 
         $data = $request->getJsonBody();
-        
+
         $validator = new Validator($data);
 
         $rules = [
             'name' => 'required|min:1|max:45',
             'category' => 'required',
-            'active' => 'required',
             'description' => 'required',
             'situation' => 'required'
         ];
@@ -131,6 +138,8 @@ class ApartamentoController extends Controller
 
     public function destroy(Request $request, string $id)
     {
+        $this->checkPermission('apartments.delete');
+
         $apartamento = $this->apartamentoRepository->findByUuid($id);
 
         if (is_null($apartamento)) {
@@ -157,6 +166,8 @@ class ApartamentoController extends Controller
 
     public function changeActiveStatus(Request $request, string $id)
     {
+        $this->checkPermission('apartments.status');
+
         $apartamento = $this->apartamentoRepository->findByUuid($id);
 
         if (is_null($apartamento)) {
@@ -180,6 +191,8 @@ class ApartamentoController extends Controller
 
     public function available(Request $request)
     {
+        $this->checkPermission('apartments.view');
+
         $apartamentos = $this->apartamentoRepository->apartmentsAvailable($request->getJsonBody());
 
         if (empty($apartamentos)) {
@@ -190,5 +203,5 @@ class ApartamentoController extends Controller
         }
 
         return $this->responseJson($apartamentos, 200);
-    }   
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\api\v1\Token;
 use App\Config\Auth;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\User\IUsuarioRepository;
+use App\Repositories\Entities\Permission\PermissaoRepository;
 use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -12,10 +13,12 @@ use Firebase\JWT\Key;
 class TokenController extends Auth
 {
     protected $usuarioRepository;
+    protected $permissaoRepository;
 
     public function __construct(IUsuarioRepository $usuarioRepository)
     {
-        $this->usuarioRepository = $usuarioRepository;  
+        $this->usuarioRepository = $usuarioRepository;
+        $this->permissaoRepository = new PermissaoRepository();
     }
 
     public function index()
@@ -48,15 +51,25 @@ class TokenController extends Auth
         $tokens = $this->generateTokens($user);
         $userData = $this->usuarioRepository->findByIdWithPhoto((int)$user->code);
 
+        // Busca as permissões do usuário
+        $permissions = $this->permissaoRepository->allByUser((int)$user->code);
+        $userPermissions = array_map(function ($permission) {
+            return [
+                'id' => $permission->id,
+                'name' => $permission->name,
+                'description' => $permission->description ?? null
+            ];
+        }, $permissions);
+
         $isSecure = true; // HTTPS local e produção
         $sameSite = 'None'; // necessário para cookies cross-site (React em outro domínio/porta)
 
         setcookie('refresh_token', $tokens['refresh_token'], [
             'expires' => time() + (60 * 60 * 24 * 7),
             'path' => '/',
-            'secure' => $isSecure,         
-            'httponly' => true,            
-            'samesite' => $sameSite        
+            'secure' => $isSecure,
+            'httponly' => true,
+            'samesite' => $sameSite
         ]);
 
         http_response_code(201);
@@ -64,6 +77,7 @@ class TokenController extends Auth
             'status' => 200,
             'access_token' => $tokens['access_token'],
             'user' => $userData,
+            'permissions' => $userPermissions,
         ]);
     }
 
@@ -86,10 +100,17 @@ class TokenController extends Auth
                 throw new Exception('User not found');
             }
 
-            // Regenera os tokens (acesso + refresh)
             $tokens = $this->generateTokens($user);
 
-            // Renova o cookie do refresh_token
+            $permissions = $this->permissaoRepository->allByUser((int)$userId);
+            $userPermissions = array_map(function ($permission) {
+                return [
+                    'id' => $permission->id,
+                    'name' => $permission->name,
+                    'description' => $permission->description ?? null
+                ];
+            }, $permissions);
+
             $isSecure = true;
             $sameSite = 'None';
             setcookie('refresh_token', $tokens['refresh_token'], [
@@ -104,11 +125,12 @@ class TokenController extends Auth
             echo json_encode([
                 'status' => 200,
                 'access_token' => $tokens['access_token'],
+                'user' => $user,
+                'permissions' => $userPermissions,
             ]);
         } catch (Exception $e) {
             http_response_code(401);
             echo json_encode(['status' => 401, 'message' => 'Invalid or expired refresh token']);
         }
     }
-
 }

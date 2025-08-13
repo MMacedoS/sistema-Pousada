@@ -7,6 +7,8 @@ use App\Config\Auth;
 use App\Config\Container;
 use App\Config\Router;
 use App\Http\Controllers\api\v1\Apartments\ApartamentoController;
+use App\Http\Controllers\api\v1\Cashbox\CaixaController;
+use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaController;
 use App\Http\Controllers\api\v1\Profile\PerfilController;
 use App\Http\Controllers\api\v1\Settings\ConfiguracaoController;
 use App\Http\Controllers\api\v1\Token\TokenController;
@@ -20,6 +22,8 @@ $tokenController = $container->get(TokenController::class);
 $apartamentoController = $container->get(ApartamentoController::class);
 $perfilController = $container->get(PerfilController::class);
 $settingsController = $container->get(ConfiguracaoController::class);
+$caixaController = $container->get(CaixaController::class);
+$transacaoCaixaController = $container->get(TransacaoCaixaController::class);
 
 $router = new Router();
 $auth = new Auth();
@@ -37,5 +41,6 @@ require_once __DIR__ . '/api/v1/token/tokenRouter.php';
 require_once __DIR__ . '/api/v1/apartments/apartmentsRouter.php';
 require_once __DIR__ . '/api/v1/profile/profileRouter.php';
 require_once __DIR__ . '/api/v1/settings/settingsRouter.php';
+require_once __DIR__ . '/api/v1/cashbox/cashboxRouter.php';
 
 return $router;
