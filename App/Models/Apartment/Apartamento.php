@@ -4,8 +4,9 @@ namespace App\Models\Apartment;
 
 use App\Models\Traits\UuidTrait;
 
-class Apartamento {
-    
+class Apartamento
+{
+
     use UuidTrait;
 
     public $id;
@@ -14,11 +15,12 @@ class Apartamento {
     public ?string $description;
     public $active;
     public ?string $category;
+    public $is_deleted;
     public ?string $situation; // Situacao do apartamento: Disponivel, Ocupado, Impedido
     public $created_at;
     public $updated_at;
 
-    public function __construct () {}
+    public function __construct() {}
 
     public function create(
         array $data

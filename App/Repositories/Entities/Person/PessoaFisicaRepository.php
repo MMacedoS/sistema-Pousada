@@ -9,13 +9,15 @@ use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 
-class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaRepository {
+class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaRepository
+{
     private const CLASS_NAME = PessoaFisica::class;
     private const TABLE = 'pessoa_fisica';
-    
+
     use FindTrait;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->conn = Database::getInstance()->getConnection();
         $this->model = new PessoaFisica();
     }
@@ -23,11 +25,12 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
     public function allPersons()
     {
         $stmt = $this->conn->query(
-        "SELECT 
+            "SELECT 
            p.*
             FROM " . self::TABLE . " p 
-        ");
-        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);        
+        "
+        );
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     public function personByUserId(int $user_id)
@@ -42,13 +45,13 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
         );
 
         $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, self::CLASS_NAME);
-        $register = $stmt->fetch();  
+        $register = $stmt->fetch();
 
         if ($register == false) {
             return null;
         }
-    
-        return $register;       
+
+        return $register;
     }
 
     public function create(array $data)
@@ -61,7 +64,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
 
         try {
             $pessoa_fisica = $this->model->create($data);
-            
+
             $stmt = $this->conn->prepare(
                 "INSERT INTO " . self::TABLE . " 
                 SET 
@@ -77,7 +80,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                     address = :endereco
                     "
             );
-    
+
             $create = $stmt->execute([
                 ':uuid' => $pessoa_fisica->uuid,
                 ':usuario_id' => $pessoa_fisica->usuario_id,
@@ -90,19 +93,19 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                 ':endereco' => $pessoa_fisica->address,
                 ':doc' => $pessoa_fisica->doc
             ]);
-            
+
             if (!$create) {
                 return null;
             }
-    
+
             return $this->findByUuid($pessoa_fisica->uuid);
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
-    } 
+    }
 
     public function update(array $data, int $id)
     {
@@ -116,11 +119,11 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
             $data,
             $pessoa_fisica
         );
-        
+
         try {
             $stmt = $this->conn
-            ->prepare(
-                "UPDATE " . self::TABLE . "
+                ->prepare(
+                    "UPDATE " . self::TABLE . "
                     set 
                     usuario_id = :usuario_id,
                     name = :name,
@@ -133,7 +136,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                     address = :address,
                     updated_at = NOW()
                 WHERE id = :id"
-            );
+                );
 
             $updated = $stmt->execute([
                 ':id' => $id,
@@ -148,14 +151,14 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                 ':doc' => $pessoa_fisica->doc
             ]);
 
-            if (!$updated) {        
+            if (!$updated) {
                 return null;
             }
             return $this->findById($id);
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
@@ -173,7 +176,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
 
     public function findPessoaFisica(array $criteria = []): ?PessoaFisica
     {
-        if(empty($criteria)) {
+        if (empty($criteria)) {
             return null;
         }
 
@@ -199,7 +202,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
             }
 
             if (empty($conditions)) {
-                return null; 
+                return null;
             }
 
             $sql = "SELECT * FROM " . self::TABLE . " WHERE " . implode(' AND ', $conditions);
@@ -211,50 +214,73 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
         }
     }
 
-    public function delete(int $id) 
+    public function delete(int $id)
     {
         $stmt = $this->conn
-        ->prepare(
-            "UPDATE " . self::TABLE . " 
+            ->prepare(
+                "UPDATE " . self::TABLE . " 
              SET active = 0 
              WHERE id = :id"
-        );
+            );
 
         $updated = $stmt->execute(['id' => $id]);
 
         return $updated;
     }
 
-    public function remove($id) :?bool 
+    public function remove($id): ?bool
     {
-        
+
         $pessoa_fisica = $this->findById((int)$id);
-       
+
         if (is_null($pessoa_fisica)) {
             return null;
         }
-        
+
         try {
             $stmt = $this->conn->prepare("DELETE FROM " . self::TABLE . " WHERE id = :id");
             $delete = $stmt->execute([
                 ':id' => $id
             ]);
-            if($delete) {
+            if ($delete) {
                 return true;
             }
             return false;
-        } catch(\Throwable $th) {
+        } catch (\Throwable $th) {
             dd($th->getMessage());
             LoggerHelper::logInfo("Erro na transação delete: {$th->getMessage()}");
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {          
+        } finally {
             Database::getInstance()->closeConnection();
+        }
+    }
+
+    public function deleteByUserId(int $user_id): ?bool
+    {
+        $pessoa_fisica = $this->findPessoaFisica(['user_id' => $user_id]);
+
+        if (is_null($pessoa_fisica)) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->conn->prepare("UPDATE " . self::TABLE . " SET is_deleted = 1 WHERE usuario_id = :usuario_id");
+            $delete = $stmt->execute([
+                ':usuario_id' => $user_id
+            ]);
+            if ($delete) {
+                return true;
+            }
+            return false;
+        } catch (\Throwable $th) {
+            LoggerHelper::logInfo("Erro na transação deleteByUserId: {$th->getMessage()}");
+            return false;
         }
     }
 }

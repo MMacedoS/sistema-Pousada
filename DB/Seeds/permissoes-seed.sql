@@ -42,6 +42,12 @@ INSERT INTO permissao (uuid, name, description, created_at, updated_at) VALUES
 (UUID(), 'dashboard.admin', 'Dashboard administrativo', NOW(), NOW()),
 (UUID(), 'dashboard.manager', 'Dashboard gerencial', NOW(), NOW()),
 (UUID(), 'dashboard.reception', 'Dashboard recepção', NOW(), NOW());
+(UUID(), 'employees.view', 'Visualizar funcionários', NOW(), NOW()),
+(UUID(), 'employees.create', 'Cadastrar funcionários', NOW(), NOW()),
+(UUID(), 'employees.edit', 'Editar funcionários', NOW(), NOW()),
+(UUID(), 'employees.delete', 'Excluir funcionários', NOW(), NOW()),
+(UUID(), 'employees.status', 'Alterar status funcionários', NOW(), NOW());
+
 INSERT INTO permissao_as_usuario (permissao_id, usuario_id, created_at, updated_at)
 SELECT p.id, u.id, NOW(), NOW()
 FROM permissao p, usuarios u
@@ -60,7 +66,7 @@ AND p.name IN (
     'products.view', 'products.create', 'products.edit',
     'reports.reservations', 'reports.financial', 'reports.occupancy', 'reports.customers',
     'settings.view',
-    'dashboard.admin', 'dashboard.manager'
+    'dashboard.admin', 'dashboard.manager', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.status'
 );
 INSERT INTO permissao_as_usuario (permissao_id, usuario_id, created_at, updated_at)
 SELECT p.id, u.id, NOW(), NOW()

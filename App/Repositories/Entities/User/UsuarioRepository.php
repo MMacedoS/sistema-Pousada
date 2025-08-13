@@ -34,7 +34,7 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
 
     public function all(array $params = [])
     {
-        $sql = "SELECT u.*, JSON_OBJECT(
+        $sql = "SELECT u.uuid as id, u.name, u.email, u.access, u.active, JSON_OBJECT(
                     'id', p.id,
                     'name', p.name,
                     'uuid', p.uuid,
@@ -61,6 +61,9 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
             $conditions[] = "u.active = :situation";
             $bindings[':situation'] = $params['situation'];
         }
+
+        $conditions[] = 'u.is_deleted = :is_deleted';
+        $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
 
         if (count($conditions) > 0) {
             $sql .= " WHERE " . implode(" AND ", $conditions);
@@ -285,7 +288,9 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
             $stmt = $this->conn->prepare(
                 "SELECT id as code, password, name, email, access, active, arquivo_id, uuid as id 
                     FROM " . self::TABLE . " 
-                    WHERE email = :email"
+                    WHERE email = :email 
+                    and is_deleted = 0
+                    and active = 1"
             );
             $stmt->bindValue(':email', $email);
             $stmt->execute();
@@ -315,11 +320,15 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         $stmt = $this->conn
             ->prepare(
                 "UPDATE " . self::TABLE . " 
-             SET active = 0 
+             SET is_deleted = 1 
              WHERE id = :id"
             );
 
         $updated = $stmt->execute([':id' => $id]);
+
+        if ($updated) {
+            $this->pessoaFisicaRepository->deleteByUserId($id);
+        }
 
         return $updated;
     }
@@ -485,7 +494,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
     private function permissionList($role)
     {
         if ($role == 'administrador') {
-            // Acesso total ao sistema
             return [
                 ['name' => 'users.view'],
                 ['name' => 'users.create'],
@@ -530,6 +538,11 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
                 ['name' => 'dashboard.admin'],
                 ['name' => 'dashboard.manager'],
                 ['name' => 'dashboard.reception'],
+                ['name' => 'employees.view'],
+                ['name' => 'employees.create'],
+                ['name' => 'employees.edit'],
+                ['name' => 'employees.delete'],
+                ['name' => 'employees.status'],
             ];
         }
 
@@ -569,6 +582,11 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
                 ['name' => 'settings.view'],
                 ['name' => 'dashboard.admin'],
                 ['name' => 'dashboard.manager'],
+                ['name' => 'employees.view'],
+                ['name' => 'employees.create'],
+                ['name' => 'employees.edit'],
+                ['name' => 'employees.delete'],
+                ['name' => 'employees.status'],
             ];
         }
 

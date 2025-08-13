@@ -4,8 +4,9 @@ namespace App\Models\Person;
 
 use App\Models\Traits\UuidTrait;
 
-class PessoaFisica {
-    
+class PessoaFisica
+{
+
     use UuidTrait;
 
     public $id;
@@ -20,11 +21,12 @@ class PessoaFisica {
     public ?string $type_doc;
     public ?string $birthday;
     public ?string $phone;
+    public $is_deleted;
     public ?string $gender;
     public $created_at;
     public $updated_at;
 
-    public function __construct () {}
+    public function __construct() {}
 
     public function create(
         array $data

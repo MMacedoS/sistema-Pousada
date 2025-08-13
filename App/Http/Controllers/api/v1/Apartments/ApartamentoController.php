@@ -26,7 +26,7 @@ class ApartamentoController extends Controller
 
         $apartamentos = $this->apartamentoRepository->all();
 
-        $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 2;
+        $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 10;
         $currentPage = $request->getParam('page') ? (int)$request->getParam('page') : 1;
 
         $paginator = new Paginator($apartamentos, $perPage, $currentPage);
