@@ -6,6 +6,7 @@ use App\Config\Auth;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
+use App\Repositories\Entities\Cashbox\CaixaRepository;
 use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -14,11 +15,13 @@ class TokenController extends Auth
 {
     protected $usuarioRepository;
     protected $permissaoRepository;
+    protected $caixaRepository;
 
     public function __construct(IUsuarioRepository $usuarioRepository)
     {
         $this->usuarioRepository = $usuarioRepository;
         $this->permissaoRepository = new PermissaoRepository();
+        $this->caixaRepository = new CaixaRepository();
     }
 
     public function index()
@@ -51,7 +54,6 @@ class TokenController extends Auth
         $tokens = $this->generateTokens($user);
         $userData = $this->usuarioRepository->findByIdWithPhoto((int)$user->code);
 
-        // Busca as permissões do usuário
         $permissions = $this->permissaoRepository->allByUser((int)$user->code);
         $userPermissions = array_map(function ($permission) {
             return [
@@ -60,6 +62,15 @@ class TokenController extends Auth
                 'description' => $permission->description ?? null
             ];
         }, $permissions);
+
+        $openCashbox = $this->caixaRepository->openedCashbox((int)$user->code);
+        $cashboxData = $openCashbox ? [
+            'id' => $openCashbox->uuid,
+            'opened_at' => $openCashbox->opened_at,
+            'initial_amount' => $openCashbox->initial_amount,
+            'current_balance' => $openCashbox->current_balance,
+            'status' => $openCashbox->status
+        ] : null;
 
         $isSecure = true; // HTTPS local e produção
         $sameSite = 'None'; // necessário para cookies cross-site (React em outro domínio/porta)
@@ -78,6 +89,7 @@ class TokenController extends Auth
             'access_token' => $tokens['access_token'],
             'user' => $userData,
             'permissions' => $userPermissions,
+            'cashbox' => $cashboxData,
         ]);
     }
 
@@ -111,6 +123,15 @@ class TokenController extends Auth
                 ];
             }, $permissions);
 
+            $openCashbox = $this->caixaRepository->openedCashbox((int)$userId);
+            $cashboxData = $openCashbox ? [
+                'id' => $openCashbox->uuid,
+                'opened_at' => $openCashbox->opened_at,
+                'initial_amount' => $openCashbox->initial_amount,
+                'current_balance' => $openCashbox->current_balance,
+                'status' => $openCashbox->status
+            ] : null;
+
             $isSecure = true;
             $sameSite = 'None';
             setcookie('refresh_token', $tokens['refresh_token'], [
@@ -127,6 +148,7 @@ class TokenController extends Auth
                 'access_token' => $tokens['access_token'],
                 'user' => $user,
                 'permissions' => $userPermissions,
+                'cashbox' => $cashboxData,
             ]);
         } catch (Exception $e) {
             http_response_code(401);

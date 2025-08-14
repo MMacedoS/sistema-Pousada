@@ -9,6 +9,7 @@ use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
+use App\Transformers\Cashbox\CaixaTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -18,13 +19,16 @@ class CaixaController extends Controller
 
     protected $caixaRepository;
     protected $transacaoRepository;
+    protected $caixaTransformer;
 
     public function __construct(
         ICaixaRepository $caixaRepository,
-        ITransacaoCaixaRepository $transacaoRepository
+        ITransacaoCaixaRepository $transacaoRepository,
+        CaixaTransformer $caixaTransformer
     ) {
         $this->caixaRepository = $caixaRepository;
         $this->transacaoRepository = $transacaoRepository;
+        $this->caixaTransformer = $caixaTransformer;
     }
 
     public function index(Request $request)
@@ -38,8 +42,10 @@ class CaixaController extends Controller
 
         $paginator = new Paginator($caixas, $perPage, $currentPage);
 
+        $transformed = $this->caixaTransformer->transformCollection($paginator->getPaginatedItems());
+
         return $this->responseJson([
-            'caixas' => $paginator->getPaginatedItems(),
+            'caixas' => $transformed,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -74,7 +80,10 @@ class CaixaController extends Controller
 
         $caixa = $this->caixaRepository->create($data);
 
-        return $this->responseJson($caixa, 201);
+        return $this->responseJson([
+            'message' => 'Caixa aberto com sucesso',
+            'data' => $this->caixaTransformer->transform($caixa)
+        ], 201);
     }
 
     public function show(Request $request, string $uuid)
@@ -87,7 +96,9 @@ class CaixaController extends Controller
             return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
         }
 
-        return $this->responseJson($caixa);
+        return $this->responseJson([
+            'data' => $this->caixaTransformer->transform($caixa)
+        ]);
     }
 
     public function update(Request $request, string $uuid)
@@ -102,7 +113,10 @@ class CaixaController extends Controller
         $data = $request->getJsonBody();
         $updated = $this->caixaRepository->update($data, $caixa->id);
 
-        return $this->responseJson($updated);
+        return $this->responseJson([
+            'message' => 'Caixa atualizado com sucesso',
+            'data' => $this->caixaTransformer->transform($updated)
+        ]);
     }
 
     public function closed(Request $request, string $uuid)
@@ -119,7 +133,10 @@ class CaixaController extends Controller
 
         $fechado = $this->caixaRepository->closedCashbox($caixa->id, $data);
 
-        return $this->responseJson($fechado);
+        return $this->responseJson([
+            'message' => 'Caixa fechado com sucesso',
+            'data' => $this->caixaTransformer->transform($fechado)
+        ]);
     }
 
     public function destroy(Request $request, string $uuid)
@@ -145,12 +162,15 @@ class CaixaController extends Controller
             return $this->responseJson(['message' => 'Nenhum caixa aberto para este usuário'], 404);
         }
 
-        return $this->responseJson($caixa);
+        return $this->responseJson([
+            'data' => $this->caixaTransformer->transform($caixa)
+        ]);
     }
 
     public function transactions(Request $request, int $caixa_id)
     {
         $transacoes = $this->transacaoRepository->byCaixaId($caixa_id);
+
         return $this->responseJson($transacoes);
     }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\v1\Traits\GenericTrait;
 use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Apartments\IApartamentoRepository;
+use App\Transformers\Apartment\ApartmentTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -14,10 +15,12 @@ class ApartamentoController extends Controller
 {
     use GenericTrait, HasPermissions;
     protected $apartamentoRepository;
+    private $apartmentTransformer;
 
-    public function __construct(IApartamentoRepository $apartamentoRepository)
+    public function __construct(IApartamentoRepository $apartamentoRepository, ApartmentTransformer $apartmentTransformer)
     {
         $this->apartamentoRepository = $apartamentoRepository;
+        $this->apartmentTransformer = $apartmentTransformer;
     }
 
     public function index(Request $request)
@@ -30,7 +33,7 @@ class ApartamentoController extends Controller
         $currentPage = $request->getParam('page') ? (int)$request->getParam('page') : 1;
 
         $paginator = new Paginator($apartamentos, $perPage, $currentPage);
-        $paginatedApartamentos = $paginator->getPaginatedItems();
+        $paginatedApartamentos = $this->apartmentTransformer->transformCollection($paginator->getPaginatedItems());
 
         // Adiciona dados estruturados da paginação
         $paginationData = [

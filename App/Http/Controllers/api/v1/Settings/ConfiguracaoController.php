@@ -7,15 +7,18 @@ use App\Http\Controllers\v1\Traits\GenericTrait;
 use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Settings\IConfiguracaoRepository;
+use App\Transformers\Settings\SettingTransformer;
 
 class ConfiguracaoController extends Controller
 {
     use GenericTrait, HasPermissions;
     private $configuracaoRepository;
+    private $settingTransformer;
 
-    public function __construct(IConfiguracaoRepository $configuracaoRepository)
+    public function __construct(IConfiguracaoRepository $configuracaoRepository, SettingTransformer $settingTransformer)
     {
         $this->configuracaoRepository = $configuracaoRepository;
+        $this->settingTransformer = $settingTransformer;
     }
 
     public function index(Request $request)
@@ -23,6 +26,14 @@ class ConfiguracaoController extends Controller
         $this->checkPermission('settings.view');
 
         $settings = $this->configuracaoRepository->getSettings();
+        if (!$settings) {
+            http_response_code(404);
+            echo json_encode(['status' => 404, 'message' => 'Settings not found']);
+            return;
+        }
+
+        $settings = $this->settingTransformer->transform($settings);
+
         $this->responseJson($settings, 202);
         return;
     }
