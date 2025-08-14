@@ -10,6 +10,7 @@ use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
 use App\Transformers\Cashbox\CaixaTransformer;
+use App\Transformers\Cashbox\TransacaoTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -20,15 +21,18 @@ class CaixaController extends Controller
     protected $caixaRepository;
     protected $transacaoRepository;
     protected $caixaTransformer;
+    protected $transacaoTransformer;
 
     public function __construct(
         ICaixaRepository $caixaRepository,
         ITransacaoCaixaRepository $transacaoRepository,
-        CaixaTransformer $caixaTransformer
+        CaixaTransformer $caixaTransformer,
+        TransacaoTransformer $transacaoTransformer
     ) {
         $this->caixaRepository = $caixaRepository;
         $this->transacaoRepository = $transacaoRepository;
         $this->caixaTransformer = $caixaTransformer;
+        $this->transacaoTransformer = $transacaoTransformer;
     }
 
     public function index(Request $request)
@@ -167,11 +171,37 @@ class CaixaController extends Controller
         ]);
     }
 
-    public function transactions(Request $request, int $caixa_id)
+    public function transactions(Request $request, string $caixa_id)
     {
-        $transacoes = $this->transacaoRepository->byCaixaId($caixa_id);
+        $caixa = $this->caixaRepository->findByUuid($caixa_id);
 
-        return $this->responseJson($transacoes);
+        if (!$caixa) {
+            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+        }
+
+        $transacoes = $this->transacaoRepository->byCaixaId($caixa->id);
+
+        $perPage = $request->getParam('limit') ?? 10;
+        $currentPage = $request->getParam('page') ?? 1;
+
+        $paginator = new Paginator($transacoes, $perPage, $currentPage);
+
+        $transacoes = $paginator->getPaginatedItems();
+        $transacoesTransformadas = $this->transacaoTransformer->transformCollection($transacoes);
+
+        $paginationData = [
+            'current_page' => $paginator->currentPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->totalItems(),
+            'last_page' => $paginator->lastPage(),
+            'has_previous_page' => $paginator->hasPreviousPage(),
+            'has_next_page' => $paginator->hasNextPage(),
+        ];
+
+        return $this->responseJson([
+            'transacoes' => $transacoesTransformadas,
+            'pagination' => $paginationData
+        ]);
     }
 
     public function createTransaction(Request $request)

@@ -34,29 +34,10 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
                 c.difference, 
                 c.status, 
                 c.obs,
-                pf.name,
-                COALESCE(
-                    JSON_ARRAYAGG(
-                        CASE 
-                            WHEN tc.uuid IS NOT NULL THEN
-                                JSON_OBJECT(
-                                    'transaction_id', tc.uuid,
-                                    'transaction_type', tc.type,
-                                    'transaction_description', tc.description,
-                                    'transaction_payment_form', tc.payment_form,
-                                    'transaction_amount', tc.amount,
-                                    'transaction_canceled', tc.canceled,
-                                    'transaction_created_at', tc.created_at
-                                )
-                            ELSE NULL
-                        END
-                    ),
-                    JSON_ARRAY()
-                ) AS transactions
+                pf.name
             FROM caixas c
             INNER JOIN usuarios u ON c.id_usuario_opened = u.id
-            INNER JOIN pessoa_fisica pf ON u.id = pf.usuario_id
-            LEFT JOIN transacao_caixa tc ON c.id = tc.caixa_id
+            INNER JOIN pessoa_fisica pf ON u.id = pf.usuario_id 
         ";
 
         $bindings = [];
@@ -82,36 +63,12 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $sql .= " GROUP BY c.id, 
-            c.uuid, 
-            c.opened_at, 
-            c.closed_at, 
-            c.initial_amount, 
-            c.current_balance, 
-            c.final_amount, 
-            c.difference, 
-            c.status, 
-            c.obs,
-            pf.name
-            ORDER BY c.opened_at DESC";
+        $sql .= " ORDER BY c.opened_at DESC";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($bindings);
 
-        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
-        // Processar as transações para remover valores null
-        foreach ($results as &$caixa) {
-            $transactions = json_decode($caixa['transactions'], true);
-            // Filtrar transações nulas
-            $caixa['transactions'] = json_encode(array_filter($transactions, function ($transaction) {
-                return $transaction !== null;
-            }));
-        }
-
-        return array_map(function ($row) {
-            return (object) $row;
-        }, $results);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS);
     }
 
     private function findCashByUserId(int $userId)

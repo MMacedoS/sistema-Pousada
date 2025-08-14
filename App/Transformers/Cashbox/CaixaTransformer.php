@@ -3,7 +3,6 @@
 namespace App\Transformers\Cashbox;
 
 use App\Models\Cashbox\Caixa;
-use App\Transformers\BaseTransformer;
 
 class CaixaTransformer
 {
@@ -29,13 +28,12 @@ class CaixaTransformer
             'final_amount' => $caixa->final_amount ?? 0,
             'difference' => $caixa->difference ?? 0,
             'name' => $caixa->name ?? null,
-            'transactions' => json_decode($caixa->transactions ?? []),
             'status' => $caixa->status,
             'obs' => $caixa->obs ?? null
         ];
     }
 
-    public function transformCollection(array $caixas)
+    public function transformCollection($caixas)
     {
         return array_map(fn($caixa) => $this->transform($caixa), $caixas);
     }

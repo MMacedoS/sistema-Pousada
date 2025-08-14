@@ -2,6 +2,8 @@
 
 namespace App\Transformers\Apartment;
 
+use App\Models\Apartment\Apartamento;
+
 class ApartmentTransformer
 {
     public function transform($apartment)
@@ -15,14 +17,14 @@ class ApartmentTransformer
         }
 
         return [
-            'id' => $apartment->uuid,
-            'name' => $apartment->name,
-            'description' => $apartment->description,
-            'category' => $apartment->category,
-            'situation' => $apartment->situation,
-            'active' => $apartment->active,
-            'created_at' => $apartment->created_at,
-            'updated_at' => $apartment->updated_at,
+            'id' => $apartment->uuid ?? null,
+            'name' => $apartment->name ?? null,
+            'description' => $apartment->description ?? null,
+            'category' => $apartment->category ?? null,
+            'situation' => $apartment->situation ?? null,
+            'active' => $apartment->active ?? null,
+            'created_at' => $apartment->created_at ?? null,
+            'updated_at' => $apartment->updated_at ?? null,
         ];
     }
 
