@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api\v1\Token;
 
 use App\Config\Auth;
 use App\Http\Request\Request;
+use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
@@ -17,11 +18,14 @@ class TokenController extends Auth
     protected $permissaoRepository;
     protected $caixaRepository;
 
-    public function __construct(IUsuarioRepository $usuarioRepository)
-    {
+    public function __construct(
+        IUsuarioRepository $usuarioRepository,
+        ICaixaRepository $caixaRepository,
+        PermissaoRepository $permissaoRepository
+    ) {
         $this->usuarioRepository = $usuarioRepository;
-        $this->permissaoRepository = new PermissaoRepository();
-        $this->caixaRepository = new CaixaRepository();
+        $this->permissaoRepository = $permissaoRepository;
+        $this->caixaRepository = $caixaRepository;
     }
 
     public function index()

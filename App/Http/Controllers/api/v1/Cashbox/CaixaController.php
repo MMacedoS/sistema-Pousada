@@ -10,7 +10,7 @@ use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
 use App\Transformers\Cashbox\CaixaTransformer;
-use App\Transformers\Cashbox\TransacaoTransformer;
+use App\Transformers\Cashbox\TransacaoCaixaTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -19,20 +19,20 @@ class CaixaController extends Controller
     use GenericTrait, UserToPerson, HasPermissions;
 
     protected $caixaRepository;
-    protected $transacaoRepository;
+    protected $transacaoCaixaRepository;
     protected $caixaTransformer;
-    protected $transacaoTransformer;
+    protected $transacaoCaixaTransformer;
 
     public function __construct(
         ICaixaRepository $caixaRepository,
-        ITransacaoCaixaRepository $transacaoRepository,
+        ITransacaoCaixaRepository $transacaoCaixaRepository,
         CaixaTransformer $caixaTransformer,
-        TransacaoTransformer $transacaoTransformer
+        TransacaoCaixaTransformer $transacaoCaixaTransformer
     ) {
         $this->caixaRepository = $caixaRepository;
-        $this->transacaoRepository = $transacaoRepository;
+        $this->transacaoCaixaRepository = $transacaoCaixaRepository;
         $this->caixaTransformer = $caixaTransformer;
-        $this->transacaoTransformer = $transacaoTransformer;
+        $this->transacaoCaixaTransformer = $transacaoCaixaTransformer;
     }
 
     public function index(Request $request)
@@ -179,7 +179,7 @@ class CaixaController extends Controller
             return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
         }
 
-        $transacoes = $this->transacaoRepository->byCaixaId($caixa->id);
+        $transacoes = $this->transacaoCaixaRepository->byCaixaId($caixa->id);
 
         $perPage = $request->getParam('limit') ?? 10;
         $currentPage = $request->getParam('page') ?? 1;
@@ -187,7 +187,7 @@ class CaixaController extends Controller
         $paginator = new Paginator($transacoes, $perPage, $currentPage);
 
         $transacoes = $paginator->getPaginatedItems();
-        $transacoesTransformadas = $this->transacaoTransformer->transformCollection($transacoes);
+        $transacoesTransformadas = $this->transacaoCaixaTransformer->transformCollection($transacoes);
 
         $paginationData = [
             'current_page' => $paginator->currentPage(),
@@ -223,14 +223,14 @@ class CaixaController extends Controller
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
         }
 
-        $transacao = $this->transacaoRepository->create($data);
+        $transacao = $this->transacaoCaixaRepository->create($data);
 
         return $this->responseJson($transacao, 201);
     }
 
     public function cancelledTransaction(Request $request, int $id)
     {
-        $transacao = $this->transacaoRepository->cancelledTransaction($id);
+        $transacao = $this->transacaoCaixaRepository->cancelledTransaction($id);
 
         if (!$transacao) {
             return $this->responseJson(['message' => 'Erro ao cancelar transação ou já cancelada'], 400);

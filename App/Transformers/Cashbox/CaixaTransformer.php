@@ -42,6 +42,7 @@ class CaixaTransformer
     private function transformUser($userId)
     {
         $userRepository = UsuarioRepository::getInstance();
+        dd($userRepository); // Debugging line to check the user ID
         $user = $userRepository->findById($userId);
         return $user ? $user->name : 'Usuário Desconhecido';
     }
