@@ -8,19 +8,21 @@ use App\Models\File\Arquivo;
 use App\Repositories\Contracts\File\IArquivoRepository;
 use App\Repositories\Traits\FindTrait;
 
-class ArquivoRepository extends SingletonInstance implements IArquivoRepository 
+class ArquivoRepository extends SingletonInstance implements IArquivoRepository
 {
     private const CLASS_NAME = Arquivo::class;
     private const TABLE = 'arquivos';
 
     use FindTrait;
 
-    public function __construct(){
+    public function __construct()
+    {
         $this->model = new Arquivo();
         $this->conn = Database::getInstance()->getConnection();
     }
 
-    public function allFiles(array $params = []){
+    public function allFiles(array $params = [])
+    {
         $sql = "SELECT * FROM " . self::TABLE;
 
         $conditions = [];
@@ -46,19 +48,20 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
 
         $stmt->execute($bindings);
 
-        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);  
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
-    public function create(array $data, string $dir){
+    public function create(array $data, string $dir)
+    {
         $file = $this->model->create($data);
-        
+
         $manipulation = publicPath($data['file'], $dir);
 
-        if(is_null($manipulation)) {
+        if (is_null($manipulation)) {
             return null;
         }
-        
-        try{
+
+        try {
             $stmt = $this->conn->prepare(
                 "INSERT INTO " . self::TABLE . "
                     SET
@@ -76,31 +79,30 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
                 ':archive' => $manipulation['path']
             ]);
 
-            if(is_null($create)){
+            if (is_null($create)) {
                 return null;
             }
 
             $archiveFromDb = $this->findByUuid($file->uuid);
             return $archiveFromDb;
-        } catch(\Throwable $th){
+        } catch (\Throwable $th) {
             dd($th->getMessage());
             return null;
-        } finally{
-            Database::getInstance()->closeConnection();
+        } finally {
         }
     }
 
     public function createFilePDF($file, string $dir)
     {
         $data = uploadFile($dir, $file);
-    
+
         $manipulation = $this->model->create($data);
 
-        if(is_null($file)) {
+        if (is_null($file)) {
             return null;
         }
-        
-        try{
+
+        try {
             $stmt = $this->conn->prepare(
                 "INSERT INTO " . self::TABLE . "
                     SET
@@ -118,25 +120,25 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
                 ':archive' => $manipulation->path
             ]);
 
-            if(is_null($create)){
+            if (is_null($create)) {
                 return null;
             }
 
             $archiveFromDb = $this->findByUuid($manipulation->uuid);
             return $archiveFromDb;
-        } catch(\Throwable $th){
+        } catch (\Throwable $th) {
             return null;
-        } finally{
-            Database::getInstance()->closeConnection();
+        } finally {
         }
     }
 
-    public function update(array $data, string $dir, int $id){
+    public function update(array $data, string $dir, int $id)
+    {
         $file = $this->model->create($data);
 
         $manipulation = publicPath($data['file'], $dir);
 
-        if(!$manipulation){
+        if (!$manipulation) {
             return null;
         }
 
@@ -148,7 +150,7 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
                         ext_arquivo = :ext_archive,
                         arquivo = :archive
                     WHERE id = :id
-                " 
+                "
             );
 
             $updated = $stmt->execute([
@@ -158,19 +160,19 @@ class ArquivoRepository extends SingletonInstance implements IArquivoRepository
                 ':id' => $id
             ]);
 
-            if(!$updated){
+            if (!$updated) {
                 return null;
             }
 
             return $this->findByUuid($file->uuid);
-        } catch(\Throwable $th){
+        } catch (\Throwable $th) {
             return null;
-        } finally{
-            Database::getInstance()->closeConnection();
+        } finally {
         }
     }
 
-    public function delete(int $id){
+    public function delete(int $id)
+    {
         $stmt = $this->conn->prepare(
             "DELETE FROM " . self::TABLE . " WHERE id = :id"
         );

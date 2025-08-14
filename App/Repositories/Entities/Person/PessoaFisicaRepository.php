@@ -102,8 +102,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -158,8 +156,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -214,8 +210,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -256,8 +250,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
             LoggerHelper::logInfo("Erro na transação delete: {$th->getMessage()}");
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 

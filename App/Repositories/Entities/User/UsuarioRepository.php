@@ -25,11 +25,22 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
 
     public function __construct()
     {
-        $this->conn = Database::getInstance()->getConnection();
-        $this->model = new Usuario();
-        $this->permissioRepository = PermissaoRepository::getInstance();
-        $this->arquivoRepository = ArquivoRepository::getInstance();
-        $this->pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
+        try {
+            $database = Database::getInstance();
+            $this->conn = $database->getConnection();
+
+            // Verificar se a conexão foi estabelecida
+            if ($this->conn === null) {
+                throw new \Exception("Falha na conexão com o banco de dados no UsuarioRepository - Database getInstance retornou null");
+            }
+
+            $this->model = new Usuario();
+            $this->permissioRepository = PermissaoRepository::getInstance();
+            $this->arquivoRepository = ArquivoRepository::getInstance();
+            $this->pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
+        } catch (\Exception $e) {
+            throw new \Exception("Erro no construtor UsuarioRepository: " . $e->getMessage());
+        }
     }
 
     public function all(array $params = [])
@@ -135,8 +146,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
             $this->conn->rollBack();
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -153,8 +162,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -174,8 +181,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -192,8 +197,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -259,8 +262,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         } catch (\Throwable $th) {
             LoggerHelper::logInfo($th->getMessage() . $th->getFile() . $th->getLine());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -311,7 +312,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
             return $user;
         } catch (\Throwable $th) {
             //throw $th;
-            dd($th->getMessage());
         }
     }
 
@@ -354,8 +354,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
         } catch (\Throwable $th) {
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
@@ -384,8 +382,6 @@ class UsuarioRepository extends SingletonInstance implements IUsuarioRepository
             LoggerHelper::logInfo("Erro na transação delete: {$th->getMessage()}");
             LoggerHelper::logInfo("Trace: " . $th->getTraceAsString());
             return null;
-        } finally {
-            Database::getInstance()->closeConnection();
         }
     }
 
