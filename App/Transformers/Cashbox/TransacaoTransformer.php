@@ -7,7 +7,7 @@ use App\Models\Cashbox\TransacaoCaixa;
 class TransacaoTransformer
 {
 
-    public function transform($transacao)
+    public function transform(TransacaoCaixa $transacao)
     {
         if (!$transacao) {
             return null;

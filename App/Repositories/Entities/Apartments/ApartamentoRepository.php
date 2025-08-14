@@ -56,7 +56,7 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $stmt = $this->conn->prepare($sql);
             $stmt->execute($bindings);
 
-            return $stmt->fetchAll(\PDO::FETCH_CLASS);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\PDOException $e) {
 
             throw new \Exception("Database query error: " . $e->getMessage());

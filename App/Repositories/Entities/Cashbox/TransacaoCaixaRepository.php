@@ -104,7 +104,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($bindings);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     public function cancelledTransaction(int $id)

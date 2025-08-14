@@ -18,8 +18,7 @@ class Caixa
     public float $current_balance;
     public ?float $final_amount;
     public ?float $difference;
-    public $transactions;
-    public string $status; // aberto, fechado, cancelado
+    public string $status;
     public ?string $obs;
     public ?string $created_at;
     public ?string $updated_at;

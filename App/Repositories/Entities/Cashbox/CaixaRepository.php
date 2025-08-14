@@ -34,7 +34,7 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
                 c.difference, 
                 c.status, 
                 c.obs,
-                pf.name
+                c.id_usuario_opened
             FROM caixas c
             INNER JOIN usuarios u ON c.id_usuario_opened = u.id
             INNER JOIN pessoa_fisica pf ON u.id = pf.usuario_id 
@@ -68,7 +68,7 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($bindings);
 
-        return $stmt->fetchAll(\PDO::FETCH_CLASS);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     private function findCashByUserId(int $userId)

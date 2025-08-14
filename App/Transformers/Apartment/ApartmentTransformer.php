@@ -6,7 +6,7 @@ use App\Models\Apartment\Apartamento;
 
 class ApartmentTransformer
 {
-    public function transform($apartment)
+    public function transform(Apartamento $apartment)
     {
         if (!$apartment) {
             return null;
