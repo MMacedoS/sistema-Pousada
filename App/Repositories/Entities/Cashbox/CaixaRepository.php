@@ -37,7 +37,6 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
                 c.id_usuario_opened
             FROM caixas c
             INNER JOIN usuarios u ON c.id_usuario_opened = u.id
-            INNER JOIN pessoa_fisica pf ON u.id = pf.usuario_id 
         ";
 
         $bindings = [];
@@ -48,15 +47,15 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
             $bindings[':status'] = $params['status'];
         }
 
-        if (!empty($params['nome'])) {
-            $conditions[] = "pf.name LIKE :nome";
-            $bindings[':nome'] = '%' . $params['nome'] . '%';
+        if (!empty($params['search'])) {
+            $conditions[] = "u.name LIKE :search";
+            $bindings[':search'] = '%' . $params['search'] . '%';
         }
 
         if (!empty($params['start_date']) && !empty($params['end_date'])) {
             $conditions[] = "c.opened_at BETWEEN :start_date AND :end_date";
-            $bindings[':start_date'] = $params['start_date'];
-            $bindings[':end_date'] = $params['end_date'];
+            $bindings[':start_date'] = $params['start_date'] . ' 00:00:00';
+            $bindings[':end_date'] = $params['end_date'] . ' 23:59:59';
         }
 
         if (!empty($conditions)) {

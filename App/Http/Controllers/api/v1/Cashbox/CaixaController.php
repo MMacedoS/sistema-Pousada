@@ -39,7 +39,9 @@ class CaixaController extends Controller
     {
         $this->checkPermission('cashbox.view');
 
-        $caixas = $this->caixaRepository->all();
+        $params = $request->getQueryParams();
+
+        $caixas = $this->caixaRepository->all($params);
 
         $perPage = $request->getParam('limit') ?? 10;
         $currentPage = $request->getParam('page') ?? 1;
