@@ -127,7 +127,6 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             ':id' => $id
         ]);
 
-        // Retornar os dados atualizados direto do banco
         return $this->findById($id);
     }
 
@@ -341,5 +340,19 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
         ]);
 
         return $this->findById($id);
+    }
+
+    public function findByCashboxIdAndType(int $caixaId, string $type, string $payment_form = 'Dinheiro')
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE caixa_id = :caixa_id AND type = :type AND payment_form = :payment_form
+        ");
+        $stmt->execute([
+            ':caixa_id' => $caixaId,
+            ':type' => $type,
+            ':payment_form' => $payment_form
+        ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 }
