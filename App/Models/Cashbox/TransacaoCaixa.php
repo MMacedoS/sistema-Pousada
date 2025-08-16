@@ -20,6 +20,7 @@ class TransacaoCaixa
     public float $amount;
     public ?int $id_usuario;
     public ?string $created_at;
+    public ?string $updated_at;
 
     public function __construct() {}
 

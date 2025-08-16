@@ -215,7 +215,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
     public function byCaixaId(int $caixa_id)
     {
         $stmt = $this->conn->prepare("
-            SELECT * FROM transacao_caixa WHERE caixa_id = :caixa_id ORDER BY created_at DESC
+            SELECT * FROM transacao_caixa WHERE caixa_id = :caixa_id and canceled = 0 ORDER BY created_at DESC
         ");
         $stmt->execute([':caixa_id' => $caixa_id]);
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
@@ -270,22 +270,42 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
 
     public function cancelledTransaction(int $id)
     {
-        // Buscar a transação
         $transacao = $this->findById($id);
         if (!$transacao || $transacao->canceled) {
-            return null; // Já cancelada ou inexistente
+            return null;
         }
 
-        // Cancelar a transação
-        $stmt = $this->conn->prepare("
-            UPDATE transacao_caixa 
-            SET canceled = 1 
-            WHERE id = :id
-        ");
-        $stmt->execute([':id' => $id]);
+        $this->conn->beginTransaction();
+        try {
+            $stmt = $this->conn->prepare("
+                UPDATE transacao_caixa SET 
+                    canceled = 1,
+                    updated_at = NOW()
+                WHERE id = :id
+            ");
 
-        // Retornar transação atualizada
-        return $this->findById($id);
+            $stmt->execute([':id' => $id]);
+
+            if ($this->paymentAffectsCashbox($transacao->payment_form)) {
+                $revertType = $transacao->type === 'entrada' ? 'saida' : 'entrada';
+                $result = $this->caixaRepository->updateBalance(
+                    (int)$transacao->caixa_id,
+                    $revertType,
+                    "dinheiro",
+                    (float)$transacao->amount
+                );
+
+                if (!$result) {
+                    throw new \Exception('Erro ao atualizar o caixa após o cancelamento da transação');
+                }
+            }
+
+            $this->conn->commit();
+            return $this->findById($id);
+        } catch (\Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
     }
 
     public function updateTransaction(array $data, int $id)

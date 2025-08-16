@@ -199,20 +199,32 @@ class TransacaoCaixaController extends Controller
         }
     }
 
-    public function cancel(Request $request)
+    public function cancel(Request $request, string $caixaUuid, string $id)
     {
         $this->checkPermission('cashbox.transactions');
 
-        $uuid = $request->getParam('uuid');
-
-        if (!$uuid) {
+        if (!$caixaUuid || !$id) {
             return $this->responseJson(['error' => 'UUID não fornecido'], 400);
         }
 
-        $transacao = $this->transacaoCaixaRepository->findByUuid($uuid);
+        $caixa = $this->caixaRepository->findByUuid($caixaUuid);
+
+        if (!$caixa) {
+            return $this->responseJson(['error' => 'Caixa não encontrado'], 404);
+        }
+
+        if ($caixa->status !== 'aberto') {
+            return $this->responseJson(['error' => 'Caixa não está aberto para transações'], 400);
+        }
+
+        $transacao = $this->transacaoCaixaRepository->findByUuid($id);
 
         if (!$transacao) {
             return $this->responseJson(['error' => 'Transação não encontrada'], 404);
+        }
+
+        if ($transacao->caixa_id !== $caixa->id) {
+            return $this->responseJson(['error' => 'Transação não pertence ao caixa informado'], 422);
         }
 
         if ($transacao->canceled == 1) {
@@ -220,7 +232,6 @@ class TransacaoCaixaController extends Controller
         }
 
         try {
-            // Cancelar a transação
             $this->transacaoCaixaRepository->cancelledTransaction($transacao->id);
 
             return $this->responseJson(['message' => 'Transação cancelada com sucesso']);
