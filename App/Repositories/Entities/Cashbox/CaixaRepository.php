@@ -139,6 +139,7 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
                 final_amount = :final_amount,
                 id_usuario_closed = :id_usuario_closed,
                 closed_at = :closed_at,
+                difference = :difference,
                 obs = :obs
             WHERE id = :id
         ");
@@ -148,6 +149,7 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
             ':final_amount' => $caixa->final_amount ?? 0,
             ':id_usuario_closed' => $caixa->id_usuario_closed ?? null,
             ':closed_at' => $caixa->closed_at ?? null,
+            ':difference' => $caixa->difference ?? 0,
             ':obs' => $caixa->obs ?? null,
             ':id' => $id
         ]);
@@ -172,7 +174,13 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
             LIMIT 1
         ");
         $stmt->execute([':id_usuario' => $id_usuario]);
-        return $stmt->fetchObject(Caixa::class);
+        $register = $stmt->fetchObject(Caixa::class);
+
+        if (!$register) {
+            return null;
+        }
+
+        return $register;
     }
 
     public function delete(int $id)
@@ -196,6 +204,10 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
         }
 
         if ($type === 'saida' && $payment_form === 'dinheiro') {
+            $caixa->current_balance -= $amount;
+        }
+
+        if ($type === 'sangria' && $payment_form === 'dinheiro') {
             $caixa->current_balance -= $amount;
         }
 

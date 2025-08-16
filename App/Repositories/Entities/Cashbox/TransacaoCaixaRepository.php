@@ -60,7 +60,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $caixaUpdated = $this->caixaRepository->updateBalance(
                 (int)$transacao->caixa_id,
                 $transacao->type,
-                $transacao->payment_form,
+                "dinheiro",
                 (float)$transacao->amount
             );
 

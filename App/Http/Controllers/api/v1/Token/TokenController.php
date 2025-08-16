@@ -71,8 +71,10 @@ class TokenController extends Auth
             ];
         }, $permissions);
 
-        $openCashbox = $this->caixaRepository->openedCashbox((int)$user->code);
-        $cashboxData = $this->caixaTransformer->transform($openCashbox);
+        $cashboxData = $this->caixaRepository->openedCashbox((int)$user->code);
+        if (!is_null($cashboxData)) {
+            $cashboxData = $this->caixaTransformer->transform($cashboxData) ?? null;
+        }
 
         $isSecure = true; // HTTPS local e produção
         $sameSite = 'None'; // necessário para cookies cross-site (React em outro domínio/porta)
@@ -125,8 +127,10 @@ class TokenController extends Auth
                 ];
             }, $permissions);
 
-            $openCashbox = $this->caixaRepository->openedCashbox((int)$userId);
-            $cashboxData = $this->caixaTransformer->transform($openCashbox);
+            $cashboxData = $this->caixaRepository->openedCashbox((int)$user->code);
+            if (!is_null($cashboxData)) {
+                $cashboxData = $this->caixaTransformer->transform($cashboxData) ?? null;
+            }
 
             $isSecure = true;
             $sameSite = 'None';

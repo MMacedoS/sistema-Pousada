@@ -76,10 +76,7 @@ class CaixaController extends Controller
 
         $caixa = $this->caixaRepository->create($data);
 
-        return $this->responseJson([
-            'message' => 'Caixa aberto com sucesso',
-            'data' => $this->caixaTransformer->transform($caixa)
-        ], 201);
+        return $this->responseJson($this->caixaTransformer->transform($caixa), 201);
     }
 
     public function show(Request $request, string $uuid)
@@ -89,7 +86,7 @@ class CaixaController extends Controller
         $caixa = $this->caixaRepository->findByUuid($uuid);
 
         if (!$caixa) {
-            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+            return $this->responseJson(['Caixa não encontrado'], 404);
         }
 
         return $this->responseJson([
@@ -103,14 +100,14 @@ class CaixaController extends Controller
 
         $caixa = $this->caixaRepository->findByUuid($uuid);
         if (!$caixa) {
-            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+            return $this->responseJson(['Caixa não encontrado'], 404);
         }
 
         $data = $request->getJsonBody();
         $updated = $this->caixaRepository->update($data, $caixa->id);
 
         return $this->responseJson([
-            'message' => 'Caixa atualizado com sucesso',
+            'Caixa atualizado com sucesso',
             'data' => $this->caixaTransformer->transform($updated)
         ]);
     }
@@ -119,14 +116,41 @@ class CaixaController extends Controller
     {
         $this->checkPermission('cashbox.close');
 
-        $caixa = $this->caixaRepository->findByUuid($uuid);
-        if (!$caixa) {
-            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+        $data = $request->getJsonBody();
+
+        if (!isset($data['final_amount']) || $data['final_amount'] === null) {
+            return $this->responseJson('É obrigatório informar o valor final contado no caixa', 422);
         }
 
-        $data = $request->getJsonBody();
+        $caixa = $this->caixaRepository->findByUuid($uuid);
+        if (!$caixa) {
+            return $this->responseJson('Caixa não encontrado', 404);
+        }
+
+        $userId = $this->authUserByApi();
+
+        if ((string)$caixa->id_usuario_opened !== $userId) {
+            return $this->responseJson('Você não tem permissão para fechar este caixa', 403);
+        }
+
+        if ($caixa->status !== 'aberto') {
+            return $this->responseJson('Caixa já está fechado', 422);
+        }
+
+        if ($caixa->current_balance < 0) {
+            return $this->responseJson('Caixa não pode ser fechado com saldo atual negativo', 422);
+        }
+
+        $finalAmount = (float) $data['final_amount'];
+        $expectedAmount = (float) $caixa->current_balance;
+        $difference = $finalAmount - $expectedAmount;
+
+        $data['id_usuario_closed'] = $userId;
+        $data['difference'] = $difference;
+        $data['closed_at'] = date('Y-m-d H:i:s');
         $data['status'] = 'fechado';
 
+        // Fecha o caixa
         $fechado = $this->caixaRepository->closedCashbox($caixa->id, $data);
 
         return $this->responseJson([
@@ -139,15 +163,15 @@ class CaixaController extends Controller
     {
         $caixa = $this->caixaRepository->findByUuid($uuid);
         if (!$caixa) {
-            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+            return $this->responseJson(['Caixa não encontrado'], 404);
         }
 
         $deleted = $this->caixaRepository->delete($caixa->id);
         if (!$deleted) {
-            return $this->responseJson(['message' => 'Erro ao deletar caixa'], 500);
+            return $this->responseJson(['Erro ao deletar caixa'], 500);
         }
 
-        return $this->responseJson(['message' => 'Caixa deletado com sucesso']);
+        return $this->responseJson(['Caixa deletado com sucesso']);
     }
 
     public function openedCashboxByUserId(Request $request, int $id_usuario)
@@ -155,7 +179,7 @@ class CaixaController extends Controller
         $caixa = $this->caixaRepository->openedCashbox($id_usuario);
 
         if (!$caixa) {
-            return $this->responseJson(['message' => 'Nenhum caixa aberto para este usuário'], 404);
+            return $this->responseJson(['Nenhum caixa aberto para este usuário'], 404);
         }
 
         return $this->responseJson([
@@ -168,7 +192,7 @@ class CaixaController extends Controller
         $caixa = $this->caixaRepository->findByUuid($caixa_id);
 
         if (!$caixa) {
-            return $this->responseJson(['message' => 'Caixa não encontrado'], 404);
+            return $this->responseJson(['Caixa não encontrado'], 404);
         }
 
         $transacoes = $this->transacaoCaixaRepository->byCaixaId($caixa->id);
@@ -218,17 +242,6 @@ class CaixaController extends Controller
         $transacao = $this->transacaoCaixaRepository->create($data);
 
         return $this->responseJson($transacao, 201);
-    }
-
-    public function cancelledTransaction(Request $request, int $id)
-    {
-        $transacao = $this->transacaoCaixaRepository->cancelledTransaction($id);
-
-        if (!$transacao) {
-            return $this->responseJson(['message' => 'Erro ao cancelar transação ou já cancelada'], 400);
-        }
-
-        return $this->responseJson($transacao);
     }
 
     public function all()
