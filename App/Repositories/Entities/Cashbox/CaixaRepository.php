@@ -183,4 +183,35 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
         $stmt = $this->conn->prepare("DELETE FROM caixas WHERE id = :id");
         return $stmt->execute([':id' => $id]);
     }
+
+    public function updateBalance(int $id_caixa, string $type, string $payment_form, float $amount)
+    {
+        $caixa = $this->findById($id_caixa);
+        if (!$caixa) {
+            return null;
+        }
+
+        if ($type === 'entrada' && $payment_form === 'dinheiro') {
+            $caixa->current_balance += $amount;
+        }
+
+        if ($type === 'saida' && $payment_form === 'dinheiro') {
+            $caixa->current_balance -= $amount;
+        }
+
+        $stmt = $this->conn->prepare("
+            UPDATE caixas SET current_balance = :current_balance WHERE id = :id
+        ");
+
+        $updated = $stmt->execute([
+            ':current_balance' => $caixa->current_balance,
+            ':id' => $id_caixa
+        ]);
+
+        if (!$updated) {
+            return null;
+        }
+
+        return $this->findById($id_caixa);
+    }
 }

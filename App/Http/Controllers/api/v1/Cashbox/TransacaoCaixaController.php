@@ -9,6 +9,7 @@ use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
+use App\Transformers\Cashbox\TransacaoCaixaTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -16,27 +17,26 @@ class TransacaoCaixaController extends Controller
 {
     use GenericTrait, UserToPerson, HasPermissions;
 
-    protected $transacaoRepository;
+    protected $transacaoCaixaRepository;
     protected $caixaRepository;
+    protected $transacaoCaixaTransformer;
 
     public function __construct(
-        ITransacaoCaixaRepository $transacaoRepository,
-        ICaixaRepository $caixaRepository
+        ITransacaoCaixaRepository $transacaoCaixaRepository,
+        ICaixaRepository $caixaRepository,
+        TransacaoCaixaTransformer $transacaoCaixaTransformer
     ) {
-        $this->transacaoRepository = $transacaoRepository;
+        $this->transacaoCaixaRepository = $transacaoCaixaRepository;
         $this->caixaRepository = $caixaRepository;
+        $this->transacaoCaixaTransformer = $transacaoCaixaTransformer;
     }
 
-    /**
-     * Listar todas as transações do caixa
-     */
     public function index(Request $request)
     {
         $this->checkPermission('cashbox.view');
 
         $params = [];
 
-        // Filtros opcionais
         if ($request->getParam('caixa_id')) {
             $params['caixa_id'] = $request->getParam('caixa_id');
         }
@@ -49,7 +49,7 @@ class TransacaoCaixaController extends Controller
             $params['origin'] = $request->getParam('origin');
         }
 
-        $transacoes = $this->transacaoRepository->all($params);
+        $transacoes = $this->transacaoCaixaRepository->all($params);
 
         $perPage = $request->getParam('limit') ?? 10;
         $currentPage = $request->getParam('page') ?? 1;
@@ -69,32 +69,36 @@ class TransacaoCaixaController extends Controller
         ]);
     }
 
-    /**
-     * Buscar transação por UUID
-     */
-    public function show(Request $request)
+    public function show(Request $request, string $caixaUuid, string $uuid)
     {
         $this->checkPermission('cashbox.view');
 
-        $uuid = $request->getParam('uuid');
-
-        if (!$uuid) {
+        if (!$caixaUuid || !$uuid) {
             return $this->responseJson(['error' => 'UUID não fornecido'], 400);
         }
 
-        $transacao = $this->transacaoRepository->findByUuid($uuid);
+        $caixa = $this->caixaRepository->findByUuid($caixaUuid);
+
+        if (!$caixa) {
+            return $this->responseJson(['error' => 'Caixa não encontrado'], 422);
+        }
+
+        $transacao = $this->transacaoCaixaRepository->findByUuid($uuid);
 
         if (!$transacao) {
-            return $this->responseJson(['error' => 'Transação não encontrada'], 404);
+            return $this->responseJson(['error' => 'Transação não encontrada'], 422);
         }
+
+        if ($transacao->caixa_id !== $caixa->id) {
+            return $this->responseJson(['error' => 'Transação não pertence ao caixa informado'], 422);
+        }
+
+        $transacao = $this->transacaoCaixaTransformer->transform($transacao);
 
         return $this->responseJson(['transacao' => $transacao]);
     }
 
-    /**
-     * Criar nova transação de caixa
-     */
-    public function store(Request $request)
+    public function store(Request $request, string $caixaUuid)
     {
         $this->checkPermission('cashbox.transactions');
 
@@ -102,9 +106,7 @@ class TransacaoCaixaController extends Controller
 
         $validator = new Validator($data);
 
-        // Validações
         $rules = [
-            'caixa_id' => 'required',
             'type' => 'required',
             'origin' => 'required',
             'payment_form' => 'required',
@@ -115,8 +117,7 @@ class TransacaoCaixaController extends Controller
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
         }
 
-        // Verificar se o caixa existe e está aberto
-        $caixa = $this->caixaRepository->findById($data['caixa_id']);
+        $caixa = $this->caixaRepository->findByUuid($caixaUuid);
 
         if (!$caixa) {
             return $this->responseJson(['error' => 'Caixa não encontrado'], 404);
@@ -126,12 +127,11 @@ class TransacaoCaixaController extends Controller
             return $this->responseJson(['error' => 'Caixa não está aberto para transações'], 400);
         }
 
-        // Adicionar ID do usuário logado
         $data['id_usuario'] = $this->authUserByApi();
+        $data['caixa_id'] = $caixa->id;
 
         try {
-            // Criar a transação
-            $transacao = $this->transacaoRepository->create($data);
+            $transacao = $this->transacaoCaixaRepository->create($data);
 
             return $this->responseJson([
                 'message' => 'Transação criada com sucesso',
@@ -142,9 +142,63 @@ class TransacaoCaixaController extends Controller
         }
     }
 
-    /**
-     * Cancelar uma transação
-     */
+    public function update(Request $request, string $caixaUuid, string $id)
+    {
+        $this->checkPermission('cashbox.transactions');
+
+        $data = $request->getJsonBody();
+
+        $validator = new Validator($data);
+
+        $rules = [
+            'type' => 'required',
+            'origin' => 'required',
+            'payment_form' => 'required',
+            'amount' => 'required',
+        ];
+
+        if (!$validator->validate($rules)) {
+            return $this->responseJson(['errors' => $validator->getErrors()], 422);
+        }
+
+        $caixa = $this->caixaRepository->findByUuid($caixaUuid);
+
+        if (!$caixa) {
+            return $this->responseJson(['error' => 'Caixa não encontrado'], 404);
+        }
+
+        if ($caixa->status !== 'aberto') {
+            return $this->responseJson(['error' => 'Caixa não está aberto para transações'], 400);
+        }
+
+        try {
+            $transacao = $this->transacaoCaixaRepository->findByUuid($id);
+
+            if (!$transacao) {
+                return $this->responseJson(['error' => 'Transação não encontrada'], 404);
+            }
+
+            if ($transacao->caixa_id !== $caixa->id) {
+                return $this->responseJson(['error' => 'Transação não pertence ao caixa informado'], 422);
+            }
+
+            $transacao = $this->transacaoCaixaRepository->update($data, $transacao->id);
+
+            if (!$transacao) {
+                return $this->responseJson(['error' => 'Erro ao atualizar transação'], 500);
+            }
+
+            $transacao = $this->transacaoCaixaTransformer->transform($transacao);
+
+            return $this->responseJson([
+                'message' => 'Transação atualizada com sucesso',
+                'transacao' => $transacao
+            ]);
+        } catch (\Exception $e) {
+            return $this->responseJson(['error' => 'Erro ao atualizar transação: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function cancel(Request $request)
     {
         $this->checkPermission('cashbox.transactions');
@@ -155,7 +209,7 @@ class TransacaoCaixaController extends Controller
             return $this->responseJson(['error' => 'UUID não fornecido'], 400);
         }
 
-        $transacao = $this->transacaoRepository->findByUuid($uuid);
+        $transacao = $this->transacaoCaixaRepository->findByUuid($uuid);
 
         if (!$transacao) {
             return $this->responseJson(['error' => 'Transação não encontrada'], 404);
@@ -167,7 +221,7 @@ class TransacaoCaixaController extends Controller
 
         try {
             // Cancelar a transação
-            $this->transacaoRepository->cancelledTransaction($transacao->id);
+            $this->transacaoCaixaRepository->cancelledTransaction($transacao->id);
 
             return $this->responseJson(['message' => 'Transação cancelada com sucesso']);
         } catch (\Exception $e) {
@@ -175,9 +229,6 @@ class TransacaoCaixaController extends Controller
         }
     }
 
-    /**
-     * Listar transações por caixa
-     */
     public function byCaixa(Request $request)
     {
         $this->checkPermission('cashbox.view');
@@ -188,7 +239,7 @@ class TransacaoCaixaController extends Controller
             return $this->responseJson(['error' => 'ID do caixa não fornecido'], 400);
         }
 
-        $transacoes = $this->transacaoRepository->byCaixaId($caixaId);
+        $transacoes = $this->transacaoCaixaRepository->byCaixaId($caixaId);
 
         $perPage = $request->getParam('limit') ?? 10;
         $currentPage = $request->getParam('page') ?? 1;
@@ -208,9 +259,6 @@ class TransacaoCaixaController extends Controller
         ]);
     }
 
-    /**
-     * Relatório de transações por período
-     */
     public function relatorio(Request $request)
     {
         $this->checkPermission('financial.reports');
@@ -232,7 +280,7 @@ class TransacaoCaixaController extends Controller
             $params['caixa_id'] = $caixaId;
         }
 
-        $transacoes = $this->transacaoRepository->all($params);
+        $transacoes = $this->transacaoCaixaRepository->all($params);
 
         // Calcular totalizadores
         $totalEntradas = 0;

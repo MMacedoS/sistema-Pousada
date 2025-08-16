@@ -8,6 +8,7 @@ use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
+use App\Transformers\Cashbox\CaixaTransformer;
 use Exception;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -17,15 +18,18 @@ class TokenController extends Auth
     protected $usuarioRepository;
     protected $permissaoRepository;
     protected $caixaRepository;
+    protected $caixaTransformer;
 
     public function __construct(
         IUsuarioRepository $usuarioRepository,
         ICaixaRepository $caixaRepository,
-        PermissaoRepository $permissaoRepository
+        PermissaoRepository $permissaoRepository,
+        CaixaTransformer $caixaTransformer
     ) {
         $this->usuarioRepository = $usuarioRepository;
         $this->permissaoRepository = $permissaoRepository;
         $this->caixaRepository = $caixaRepository;
+        $this->caixaTransformer = $caixaTransformer;
     }
 
     public function index()
@@ -68,13 +72,7 @@ class TokenController extends Auth
         }, $permissions);
 
         $openCashbox = $this->caixaRepository->openedCashbox((int)$user->code);
-        $cashboxData = $openCashbox ? [
-            'id' => $openCashbox->uuid,
-            'opened_at' => $openCashbox->opened_at,
-            'initial_amount' => $openCashbox->initial_amount,
-            'current_balance' => $openCashbox->current_balance,
-            'status' => $openCashbox->status
-        ] : null;
+        $cashboxData = $this->caixaTransformer->transform($openCashbox);
 
         $isSecure = true; // HTTPS local e produção
         $sameSite = 'None'; // necessário para cookies cross-site (React em outro domínio/porta)
@@ -128,13 +126,7 @@ class TokenController extends Auth
             }, $permissions);
 
             $openCashbox = $this->caixaRepository->openedCashbox((int)$userId);
-            $cashboxData = $openCashbox ? [
-                'id' => $openCashbox->uuid,
-                'opened_at' => $openCashbox->opened_at,
-                'initial_amount' => $openCashbox->initial_amount,
-                'current_balance' => $openCashbox->current_balance,
-                'status' => $openCashbox->status
-            ] : null;
+            $cashboxData = $this->caixaTransformer->transform($openCashbox);
 
             $isSecure = true;
             $sameSite = 'None';

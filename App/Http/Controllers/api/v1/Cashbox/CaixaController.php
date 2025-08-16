@@ -70,16 +70,6 @@ class CaixaController extends Controller
         $data = $request->getJsonBody();
         $data['status'] = 'aberto';
 
-        $validator = new Validator($data);
-
-        $rules = [
-            'initial_amount' => 'required',
-        ];
-
-        if (!$validator->validate($rules)) {
-            return $this->responseJson(['errors' => $validator->getErrors()], 422);
-        }
-
         $userId = $this->authUserByApi();
 
         $data['id_usuario_opened'] = $userId;
@@ -103,7 +93,7 @@ class CaixaController extends Controller
         }
 
         return $this->responseJson([
-            'data' => $this->caixaTransformer->transform($caixa)
+            'cashbox' => $this->caixaTransformer->transform($caixa)
         ]);
     }
 

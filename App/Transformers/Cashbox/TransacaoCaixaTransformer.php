@@ -23,6 +23,7 @@ class TransacaoCaixaTransformer
             'type' => $transacao->type,
             'description' => $transacao->description,
             'payment_form' => $transacao->payment_form,
+            'origin' => $transacao->origin,
             'canceled' => (bool)$transacao->canceled,
             'amount' => (float)$transacao->amount ?? 0,
             'created_at' => $transacao->created_at,
