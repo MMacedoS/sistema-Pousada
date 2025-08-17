@@ -25,8 +25,6 @@ class FuncionariosController extends Controller
     {
         $this->checkPermission('employees.view');
 
-        $this->checkPermission('apartments.view');
-
         $funcionarios = $this->usuarioRepository->all();
 
         $perPage = $request->getParam('limit') ? (int)$request->getParam('limit') : 2;

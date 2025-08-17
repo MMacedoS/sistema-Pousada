@@ -1,20 +1,11 @@
 <?php
 
-namespace App\Models\Permission;
-
-use App\Models\Traits\UuidTrait;
-
-class Permissao
+class PermissaoAsUsuario
 {
 
-    use UuidTrait;
-
     public $id;
-    public $uuid;
-    public $name;
     public $permissao_id;
     public $usuario_id;
-    public $description;
     public $created_at;
     public $updated_at;
 
@@ -22,12 +13,11 @@ class Permissao
 
     public function create(
         array $data
-    ): Permissao {
-        $permissao = new Permissao();
+    ): PermissaoAsUsuario {
+        $permissao = new PermissaoAsUsuario();
         $permissao->id = $data['id'] ?? null;
-        $permissao->uuid = $data['uuid'] ?? $this->generateUUID();
-        $permissao->name = $data['name'];
-        $permissao->description = $data['description'];
+        $permissao->permissao_id = $data['permissao_id'] ?? null;
+        $permissao->usuario_id = $data['usuario_id'] ?? null;
         $permissao->created_at = $data['created_at'] ?? null;
         $permissao->updated_at = $data['updated_at'] ?? null;
         return $permissao;
