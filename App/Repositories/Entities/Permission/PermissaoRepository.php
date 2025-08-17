@@ -142,19 +142,24 @@ class PermissaoRepository extends SingletonInstance implements IPermissaoReposit
 
     public function assignPermission(int $userId, int $permissionId): bool
     {
-        $existingPermission = $this->existingPermission($userId, $permissionId);
-        if (!is_null($existingPermission)) {
-            return true;
-        }
+        try {
+            $existingPermission = $this->existingPermission($userId, $permissionId);
+            if ($existingPermission) {
+                return true;
+            }
 
-        $stmt = $this->conn->prepare(
-            "INSERT INTO permissao_as_usuario (usuario_id, permissao_id) 
+            $stmt = $this->conn->prepare(
+                "INSERT INTO permissao_as_usuario (usuario_id, permissao_id) 
             VALUES (:userId, :permissionId)"
-        );
-        return $stmt->execute([
-            ':userId' => $userId,
-            ':permissionId' => $permissionId
-        ]);
+            );
+            return $stmt->execute([
+                ':userId' => $userId,
+                ':permissionId' => $permissionId
+            ]);
+        } catch (\Throwable $th) {
+            //throw $th;
+            return false;
+        }
     }
 
     public function existingPermission(int $userId, int $permissionId)

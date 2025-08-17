@@ -53,7 +53,7 @@ class PermissaoController extends Controller
         $transformedPermissoes = $this->permissaoTransformer->transformCollection($paginatedBoards);
 
         return $this->responseJson([
-            'permissoes' => $transformedPermissoes,
+            'permissions' => $transformedPermissoes,
             'pagination' => $paginationData
         ], 200);
     }
@@ -98,9 +98,9 @@ class PermissaoController extends Controller
         );
     }
 
-    public function update(Request $request, $uuid)
+    public function update(Request $request, $id)
     {
-        $permissao = $this->permissaoRepository->findByUuid($uuid);
+        $permissao = $this->permissaoRepository->findById($id);
 
         if (is_null($permissao)) {
             return $this->responseJson('Permission not found', 404);

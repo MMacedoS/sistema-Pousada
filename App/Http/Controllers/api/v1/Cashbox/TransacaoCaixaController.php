@@ -270,53 +270,14 @@ class TransacaoCaixaController extends Controller
         ]);
     }
 
-    public function relatorio(Request $request)
+    public function reportTransactions(Request $request)
     {
-        $this->checkPermission('financial.reports');
+        $this->checkPermission('financial.cashbox.reports');
 
-        $dataInicio = $request->getParam('data_inicio');
-        $dataFim = $request->getParam('data_fim');
-        $caixaId = $request->getParam('caixa_id');
+        $transacoes = $this->transacaoCaixaRepository->all();
 
-        if (!$dataInicio || !$dataFim) {
-            return $this->responseJson(['error' => 'Período não informado'], 400);
-        }
+        $report = $this->transacaoCaixaTransformer->transformTransactionToFinance($transacoes);
 
-        $params = [
-            'data_inicio' => $dataInicio,
-            'data_fim' => $dataFim
-        ];
-
-        if ($caixaId) {
-            $params['caixa_id'] = $caixaId;
-        }
-
-        $transacoes = $this->transacaoCaixaRepository->all($params);
-
-        // Calcular totalizadores
-        $totalEntradas = 0;
-        $totalSaidas = 0;
-        $totalCanceladas = 0;
-
-        foreach ($transacoes as $transacao) {
-            if ($transacao->canceled == 1) {
-                $totalCanceladas += $transacao->amount;
-            } elseif ($transacao->type === 'entrada') {
-                $totalEntradas += $transacao->amount;
-            } else {
-                $totalSaidas += $transacao->amount;
-            }
-        }
-
-        return $this->responseJson([
-            'transacoes' => $transacoes,
-            'resumo' => [
-                'total_entradas' => $totalEntradas,
-                'total_saidas' => $totalSaidas,
-                'total_canceladas' => $totalCanceladas,
-                'saldo_periodo' => $totalEntradas - $totalSaidas,
-                'total_transacoes' => count($transacoes)
-            ]
-        ]);
+        return $this->responseJson(['summary' => $report]);
     }
 }

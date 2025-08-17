@@ -60,7 +60,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $caixaUpdated = $this->caixaRepository->updateBalance(
                 (int)$transacao->caixa_id,
                 $transacao->type,
-                "dinheiro",
+                strtolower($transacao->payment_form),
                 (float)$transacao->amount
             );
 
@@ -223,9 +223,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
     public function all(array $params = [])
     {
         $sql = "
-            SELECT t.*, 
-                   u.name AS usuario_nome,
-                   c.status AS caixa_status
+            SELECT t.*                   
             FROM transacao_caixa t
             LEFT JOIN usuarios u ON t.id_usuario = u.id
             LEFT JOIN caixas c ON t.caixa_id = c.id
