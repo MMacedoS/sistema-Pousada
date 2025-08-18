@@ -7,7 +7,6 @@ use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
-use App\Repositories\Entities\Cashbox\CaixaRepository;
 use App\Transformers\Cashbox\CaixaTransformer;
 use Exception;
 use Firebase\JWT\JWT;
