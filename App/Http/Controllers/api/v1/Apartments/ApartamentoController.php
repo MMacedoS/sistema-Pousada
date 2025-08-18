@@ -13,7 +13,6 @@ use App\Utils\Validator;
 
 class ApartamentoController extends Controller
 {
-    use GenericTrait, HasPermissions;
     protected $apartamentoRepository;
     private $apartmentTransformer;
 

@@ -12,8 +12,6 @@ use App\Utils\Validator;
 
 class FuncionariosController extends Controller
 {
-    use GenericTrait, HasPermissions;
-
     protected $usuarioRepository;
 
     public function __construct(IUsuarioRepository $usuarioRepository)

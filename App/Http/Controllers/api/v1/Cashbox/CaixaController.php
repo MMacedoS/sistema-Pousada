@@ -16,8 +16,6 @@ use App\Utils\Validator;
 
 class CaixaController extends Controller
 {
-    use GenericTrait, UserToPerson, HasPermissions;
-
     protected $caixaRepository;
     protected $transacaoCaixaRepository;
     protected $caixaTransformer;

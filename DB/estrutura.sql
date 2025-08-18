@@ -3,13 +3,13 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Tempo de geração: 13/08/2025 às 12:33
+-- Tempo de geração: 18/08/2025 às 11:55
 -- Versão do servidor: 8.0.41
 -- Versão do PHP: 8.2.24
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
-SET time_zone = "+03:00";
+SET time_zone = "+00:00";
 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
@@ -35,6 +35,7 @@ CREATE TABLE `apartamentos` (
   `category` enum('Casal','Solteiro','Triplo','Quadruplo','Suite','Chale') NOT NULL,
   `active` tinyint NOT NULL DEFAULT '1',
   `situation` enum('Impedido','Disponivel','Ocupado') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'Disponivel',
+  `is_deleted` tinyint NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -78,6 +79,43 @@ CREATE TABLE `caixas` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Acionadores `caixas`
+--
+DELIMITER $$
+CREATE TRIGGER `prevent_multiple_open_caixas_insert` BEFORE INSERT ON `caixas` FOR EACH ROW BEGIN
+    IF NEW.status = 'aberto' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM caixas
+            WHERE id_usuario_opened = NEW.id_usuario_opened
+              AND status = 'aberto'
+        ) THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'O usuário já possui um caixa aberto.';
+        END IF;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `prevent_multiple_open_caixas_update` BEFORE UPDATE ON `caixas` FOR EACH ROW BEGIN
+    IF NEW.status = 'aberto' AND OLD.status <> 'aberto' THEN
+        IF EXISTS (
+            SELECT 1
+            FROM caixas
+            WHERE id_usuario_opened = NEW.id_usuario_opened
+              AND status = 'aberto'
+              AND id <> NEW.id
+        ) THEN
+            SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'O usuário já possui um caixa aberto.';
+        END IF;
+    END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -125,10 +163,10 @@ CREATE TABLE `configuracao` (
   `cleaning_rate` float NOT NULL DEFAULT '30',
   `allow_booking_online` tinyint NOT NULL DEFAULT '1',
   `cancellation_policies` text,
-  `currency` varchar(45) NOT NULL DEFAULT 'BRL',
-  `time_zone` varchar(45) NOT NULL DEFAULT 'America/Bahia',
-  `advance_booking_days` int NOT NULL DEFAULT '180',
-  `display_values_on_dashboard` tinyint NOT NULL DEFAULT '1',
+  `currency` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'BRL',
+  `time_zone` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'America/Bahia',
+  `advance_booking_days` int DEFAULT '180',
+  `display_values_on_dashboard` tinyint DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -246,6 +284,21 @@ IF NEW.status = '1' THEN
 END
 $$
 DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `mesas`
+--
+
+CREATE TABLE `mesas` (
+  `id` int NOT NULL,
+  `uuid` char(36) DEFAULT NULL,
+  `name` int NOT NULL,
+  `status` enum('livre','ocupada','fechada') DEFAULT 'livre',
+  `id_venda` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -373,6 +426,7 @@ CREATE TABLE `pessoa_fisica` (
   `doc` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `type_doc` enum('CPF','RG','PASSPORT','CNH') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'CPF',
   `gender` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `is_deleted` tinyint NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -440,15 +494,16 @@ CREATE TABLE `transacao_caixa` (
   `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `caixa_id` int NOT NULL,
-  `type` enum('entrada','saida') NOT NULL,
+  `type` enum('entrada','saida','sangria') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `origin` varchar(100) DEFAULT NULL,
   `reference_uuid` char(36) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
-  `payment_form` enum('Dinheiro','PIX','Cartão Crédito','Cartão Débito','Cortesia','Permuta') NOT NULL,
+  `payment_form` enum('Dinheiro','PIX','Cartão de Crédito','Cartão de Débito','Cortesia','Permuta','Transferência Bancária','Boleto') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `canceled` tinyint NOT NULL DEFAULT '0',
   `amount` decimal(10,2) NOT NULL,
   `id_usuario` int DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -467,6 +522,7 @@ CREATE TABLE `usuarios` (
   `send_access` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `active` tinyint NOT NULL DEFAULT '1',
   `access` enum('administrador','gerente','recepcionista','recepcionista_bar') NOT NULL DEFAULT 'recepcionista',
+  `is_deleted` tinyint NOT NULL DEFAULT '0',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -566,6 +622,13 @@ ALTER TABLE `itens_venda`
   ADD KEY `id_venda` (`id_venda`),
   ADD KEY `id_produto` (`id_produto`),
   ADD KEY `fk_items_vendas_usuario` (`id_usuario`);
+
+--
+-- Índices de tabela `mesas`
+--
+ALTER TABLE `mesas`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uuid` (`uuid`);
 
 --
 -- Índices de tabela `pagamentos`
@@ -726,6 +789,12 @@ ALTER TABLE `itens_venda`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `mesas`
+--
+ALTER TABLE `mesas`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de tabela `pagamentos`
 --
 ALTER TABLE `pagamentos`
@@ -820,6 +889,15 @@ ALTER TABLE `itens_venda`
   ADD CONSTRAINT `fk_items_vendas_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
+-- Restrições para tabelas `pagamentos`
+--
+ALTER TABLE `pagamentos`
+  ADD CONSTRAINT `fk_pagamentos_caixa` FOREIGN KEY (`id_caixa`) REFERENCES `caixas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pagamentos_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reservas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pagamentos_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `fk_pagamentos_venda` FOREIGN KEY (`id_venda`) REFERENCES `vendas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
 -- Restrições para tabelas `permissao_as_usuario`
 --
 ALTER TABLE `permissao_as_usuario`
@@ -853,20 +931,11 @@ ALTER TABLE `reserva_hospedes`
   ADD CONSTRAINT `fk_reserva_hospede_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reservas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
--- Restrições para tabelas `pagamentos`
---
-ALTER TABLE `pagamentos`
-  ADD CONSTRAINT `fk_pagamentos_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reservas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  ADD CONSTRAINT `fk_pagamentos_venda` FOREIGN KEY (`id_venda`) REFERENCES `vendas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  ADD CONSTRAINT `fk_pagamentos_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  ADD CONSTRAINT `fk_pagamentos_caixa` FOREIGN KEY (`id_caixa`) REFERENCES `caixas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
---
 -- Restrições para tabelas `transacao_caixa`
 --
 ALTER TABLE `transacao_caixa`
-  ADD CONSTRAINT `transacao_caixa_ibfk_1` FOREIGN KEY (`caixa_id`) REFERENCES `caixas` (`id`),
-  ADD CONSTRAINT `fk_transacao_caixa_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+  ADD CONSTRAINT `fk_transacao_caixa_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `transacao_caixa_ibfk_1` FOREIGN KEY (`caixa_id`) REFERENCES `caixas` (`id`);
 
 --
 -- Restrições para tabelas `usuarios`
@@ -880,7 +949,6 @@ ALTER TABLE `usuarios`
 ALTER TABLE `vendas`
   ADD CONSTRAINT `fk_vendas_reserva` FOREIGN KEY (`id_reserva`) REFERENCES `reservas` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   ADD CONSTRAINT `fk_vendas_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
-
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

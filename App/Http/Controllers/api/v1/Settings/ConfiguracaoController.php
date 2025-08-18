@@ -11,7 +11,6 @@ use App\Transformers\Settings\SettingTransformer;
 
 class ConfiguracaoController extends Controller
 {
-    use GenericTrait, HasPermissions;
     private $configuracaoRepository;
     private $settingTransformer;
 

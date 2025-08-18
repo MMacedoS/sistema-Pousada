@@ -12,7 +12,6 @@ use App\Repositories\Contracts\User\IUsuarioRepository;
 
 class PerfilController extends Controller
 {
-    use UserToPerson, GenericTrait, HasPermissions;
     protected $pessoaFisicaRepository;
     protected $usuarioRepository;
 

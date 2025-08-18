@@ -14,8 +14,6 @@ use App\Utils\Validator;
 
 class PermissaoController extends Controller
 {
-    use GenericTrait, HasPermissions;
-
     protected $permissaoRepository;
     protected $permissaoTransformer;
     protected $usuarioRepository;
