@@ -37,7 +37,7 @@ class ProdutoController extends Controller
         $transformed = $this->produtoTransformer->transformCollection($paginator->getPaginatedItems());
 
         return $this->responseJson([
-            'produtos' => $transformed,
+            'products' => $transformed,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -63,13 +63,17 @@ class ProdutoController extends Controller
         ];
 
         if (!$validator->validate($rules)) {
-            return $this->responseJson(['errors' => $validator->getErrors()], 422);
+            return $this->responseJson($validator->getErrors(), 422);
         }
 
         $userId = $this->authUserByApi();
         $data['id_usuario'] = $userId;
 
         $produto = $this->produtoRepository->create($data);
+
+        if (is_null($produto)) {
+            return $this->responseJson('Erro ao criar produto', 422);
+        }
 
         return $this->responseJson($this->produtoTransformer->transform($produto), 201);
     }
@@ -91,7 +95,7 @@ class ProdutoController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $this->checkPermission('products.update');
+        $this->checkPermission('products.edit');
 
         $produto = $this->produtoRepository->findByUuid($uuid);
 
@@ -175,5 +179,14 @@ class ProdutoController extends Controller
             'message' => 'Estoque atualizado com sucesso',
             'data' => $this->produtoTransformer->transform($updatedProduct)
         ]);
+    }
+
+    public function getCategories(Request $request)
+    {
+        $this->checkPermission('products.view');
+
+        $categories = $this->produtoRepository->getCategories();
+
+        return $this->responseJson(['categories' => $categories]);
     }
 }

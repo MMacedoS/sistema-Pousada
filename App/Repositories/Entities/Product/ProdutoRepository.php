@@ -38,7 +38,7 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
         $sql = "SELECT p.*, e.quantity as estoque_quantity 
                 FROM " . self::TABLE . " p 
                 LEFT JOIN estoque e ON p.id = e.id_produto 
-                WHERE p.status = 1";
+                WHERE 1=1 ";
 
         $filters = [];
 
@@ -52,8 +52,8 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
             $filters[':category'] = $params['category'];
         }
 
-        if (!empty($params['status'])) {
-            $sql .= " AND p.status = :status";
+        if (isset($params['status']) && $params['status'] !== 'all') {
+            $sql .= " AND p.active = :status";
             $filters[':status'] = $params['status'];
         }
 
@@ -70,8 +70,8 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
         try {
             $produto = $this->model->create($data);
 
-            $sql = "INSERT INTO " . self::TABLE . " (uuid, name, description, price, category, stock, status, id_usuario) 
-                    VALUES (:uuid, :name, :description, :price, :category, :stock, :status, :id_usuario)";
+            $sql = "INSERT INTO " . self::TABLE . " (uuid, name, description, price, category, stock, id_usuario) 
+                    VALUES (:uuid, :name, :description, :price, :category, :stock, :id_usuario)";
 
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
@@ -81,7 +81,6 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
                 ':price' => $produto->price,
                 ':category' => $produto->category,
                 ':stock' => $produto->stock,
-                ':status' => $produto->status,
                 ':id_usuario' => $produto->id_usuario
             ]);
 
@@ -158,7 +157,6 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
                     price = :price, 
                     category = :category, 
                     stock = :stock, 
-                    status = :status, 
                     id_usuario = :id_usuario 
                     WHERE id = :id";
 
@@ -169,7 +167,6 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
                 ':price' => $updatedProduto->price,
                 ':category' => $updatedProduto->category,
                 ':stock' => $updatedProduto->stock,
-                ':status' => $updatedProduto->status,
                 ':id_usuario' => $updatedProduto->id_usuario,
                 ':id' => $id
             ]);
@@ -278,16 +275,24 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
 
     public function getCategories()
     {
-        try {
-            $sql = "SELECT DISTINCT category FROM " . self::TABLE . " WHERE status = 1 ORDER BY category ASC";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_COLUMN);
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar categorias: " . $e->getMessage());
-            return [];
-        }
+        return [
+            [
+                "uuid" => "bebidas",
+                "name" => "Bebidas"
+            ],
+            [
+                "uuid" => "comida",
+                "name" => "Comida"
+            ],
+            [
+                "uuid" => "sobremesa",
+                "name" => "Sobremesa"
+            ],
+            [
+                "uuid" => "outros",
+                "name" => "Outros"
+            ]
+        ];
     }
 
     public function findAvailable()

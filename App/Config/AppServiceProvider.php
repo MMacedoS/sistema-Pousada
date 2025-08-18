@@ -8,7 +8,11 @@ use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
 use App\Repositories\Contracts\File\IArquivoRepository;
 use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
+use App\Repositories\Contracts\Product\IProdutoRepository;
+use App\Repositories\Contracts\Sale\IItemVendaRepository;
+use App\Repositories\Contracts\Sale\IVendaRepository;
 use App\Repositories\Contracts\Settings\IConfiguracaoRepository;
+use App\Repositories\Contracts\Table\IMesaRepository;
 use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
@@ -16,7 +20,11 @@ use App\Repositories\Entities\Cashbox\TransacaoCaixaRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Person\PessoaFisicaRepository;
+use App\Repositories\Entities\Product\ProdutoRepository;
+use App\Repositories\Entities\Sale\ItemVendaRepository;
+use App\Repositories\Entities\Sale\VendaRepository;
 use App\Repositories\Entities\Settings\ConfiguracaoRepository;
+use App\Repositories\Entities\Table\MesaRepository;
 use App\Repositories\Entities\User\UsuarioRepository;
 
 class AppServiceProvider
@@ -77,5 +85,23 @@ class AppServiceProvider
                 ITransacaoCaixaRepository::class,
                 new TransacaoCaixaRepository()
             );
+        $this->container
+            ->set(
+                IProdutoRepository::class,
+                new ProdutoRepository()
+            );
+        $this->container
+            ->set(
+                IVendaRepository::class,
+                new VendaRepository()
+            );
+        $this->container->set(
+            IItemVendaRepository::class,
+            new ItemVendaRepository()
+        );
+        $this->container->set(
+            IMesaRepository::class,
+            new MesaRepository()
+        );
     }
 }

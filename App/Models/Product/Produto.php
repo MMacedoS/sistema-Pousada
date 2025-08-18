@@ -12,11 +12,11 @@ class Produto
     public ?string $uuid;
     public ?string $name;
     public ?string $description;
-    public ?float $price;
+    public ?string $price;
     public ?string $category;
-    public ?int $stock;
-    public ?int $status;
-    public ?int $id_usuario;
+    public ?string $stock;
+    public ?string $status;
+    public ?string $id_usuario;
     public $created_at;
     public $updated_at;
 
@@ -31,7 +31,7 @@ class Produto
         $produto->description = $data['description'] ?? null;
         $produto->price = $data['price'] ?? 0.00;
         $produto->category = $data['category'] ?? null;
-        $produto->stock = $data['stock'] ?? null;
+        $produto->stock = $data['stock_quantity'] ?? null;
         $produto->status = $data['status'] ?? 1;
         $produto->id_usuario = $data['id_usuario'] ?? null;
         $produto->created_at = $data['created_at'] ?? null;
@@ -46,7 +46,7 @@ class Produto
         $produto->description = $data['description'] ?? $produto->description;
         $produto->price = $data['price'] ?? $produto->price;
         $produto->category = $data['category'] ?? $produto->category;
-        $produto->stock = $data['stock'] ?? $produto->stock;
+        $produto->stock = $data['stock_quantity'] ?? $produto->stock;
         $produto->status = $data['status'] ?? $produto->status;
         $produto->id_usuario = $data['id_usuario'] ?? $produto->id_usuario;
 
