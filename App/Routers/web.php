@@ -9,6 +9,7 @@ use App\Config\Router;
 use App\Http\Controllers\api\v1\Apartments\ApartamentoController;
 use App\Http\Controllers\api\v1\Cashbox\CaixaController;
 use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaController;
+use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaUsuarioController;
 use App\Http\Controllers\api\v1\Employees\FuncionariosController;
 use App\Http\Controllers\api\v1\Payment\PagamentoController;
 use App\Http\Controllers\api\v1\Permission\PermissaoController;
@@ -36,6 +37,7 @@ $produtoController = $container->get(ProdutoController::class);
 $vendaController = $container->get(VendaController::class);
 $itemVendaController = $container->get(ItemVendaController::class);
 $pagamentoController = $container->get(PagamentoController::class);
+$transacaoCaixaUsuarioController = $container->get(TransacaoCaixaUsuarioController::class);
 
 $router = new Router();
 $auth = new Auth();

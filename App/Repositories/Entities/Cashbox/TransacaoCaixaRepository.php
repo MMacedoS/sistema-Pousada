@@ -258,6 +258,11 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $bindings[':payment_form'] = $params['payment_form'];
         }
 
+        if (!empty($params['id_usuario'])) {
+            $sql .= " AND t.id_usuario = :id_usuario";
+            $bindings[':id_usuario'] = $params['id_usuario'];
+        }
+
         $sql .= " ORDER BY t.created_at DESC";
 
         $stmt = $this->conn->prepare($sql);
@@ -351,6 +356,16 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             ':type' => $type,
             ':payment_form' => $payment_form
         ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function transactionsByUserId(int $id_usuario)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE id_usuario = :id_usuario
+        ");
+        $stmt->execute([':id_usuario' => $id_usuario]);
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 }
