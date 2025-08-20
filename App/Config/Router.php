@@ -1,16 +1,12 @@
 <?php
-namespace App\Config;
-        
+namespace App\Config;        
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Content-Type: application/json; charset=UTF-8");
+use App\Http\CorsHelper;
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-}
+CorsHelper::handle([
+    'https://localhost:5173',
+    'https://sistemareserva.localhost:5173',
+]);
 
 use App\Http\Request\Request;
 
@@ -49,7 +45,7 @@ class Router {
                 if (!is_null($route['auth']) && !$route['auth']->isValidToken($token)) {
                     http_response_code(401);
                     echo json_encode([
-                        'status' => 'error',
+                        'status' => 401,
                         'message' => 'Unauthorized'
                     ]);
                     return;

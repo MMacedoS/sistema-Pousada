@@ -1,28 +1,92 @@
-# variables
-@baseUrl = http://sistemareserva.localhost:8080/api/v1
+@baseUrl = https://sistemareserva.localhost:8443/api/v1
 
-# health check
 GET {{baseUrl}}/token
 
 ###
 
-# get token
-# @name getToken
-POST  {{baseUrl}}/token
+@name getToken
+POST  {{baseUrl}}/login
 Content-Type: application/json
 
 {
     "email": "admin@admin.com",
-    "password": "123"
+    "password": "password"
 }
 
 ###
 
-# get apartments
-# @name getApartments
+@name getTokenManager
+POST  {{baseUrl}}/login
+Content-Type: application/json
+
+{
+    "email": "gerente@hotel.com",
+    "password": "password"
+}
+
+###
+
+@name getTokenReception
+POST  {{baseUrl}}/login
+Content-Type: application/json
+
+{
+    "email": "recepcao@hotel.com",
+    "password": "password"
+}
+
+###
+
+@name getTokenCashier
+POST  {{baseUrl}}/login
+Content-Type: application/json
+
+{
+    "email": "caixa@hotel.com",
+    "password": "password"
+}
+
+###
+
+@name getTokenBar
+POST  {{baseUrl}}/login
+Content-Type: application/json
+
+{
+    "email": "bar@hotel.com",
+    "password": "password"
+}
+
+###
+@name putProfile
+PUT {{baseUrl}}/profile/368e06c1-d4c5-40a7-9c85-d69a03de87d7
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "name": "Administrador Sistema",
+    "email": "admin@admin.com",
+    "access": "administrador"
+}
+
+###
+@name putProfilePass
+PUT {{baseUrl}}/profile/368e06c1-d4c5-40a7-9c85-d69a03de87d7/password
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "password": "123",
+    "password_old": "12345"
+}
+
+###
+@name getApartments
 GET {{baseUrl}}/apartments  
 headers:
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
 Content-Type: application/json
 
 {
@@ -31,11 +95,10 @@ Content-Type: application/json
 }
 
 ###
-# create apartment
-# @name createApartment
+@name createApartment
 POST {{baseUrl}}/apartments
 headers:
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
 Content-Type: application/json
 
 {
@@ -47,11 +110,10 @@ Content-Type: application/json
 }
 
 ###
-# update apartment
-# @name updateApartment
+@name updateApartment
 PUT {{baseUrl}}/apartments/f906fa24-ce66-40cc-8db1-8612d09ecf87
 headers:
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
 Content-Type: application/json
 
 {
@@ -63,8 +125,7 @@ Content-Type: application/json
 }
 
 ###
-# delete apartment
-# @name deleteApartment
+@name deleteApartment
 DELETE {{baseUrl}}/apartments/f906fa24-ce66-40cc-8db1-8612d09ecf87
 headers:
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA      
@@ -76,8 +137,7 @@ Content-Type: application/json
 
 ###
 
-# get apartment by UUID
-# @name getApartmentByUuid
+@name getApartmentByUuid
 GET {{baseUrl}}/apartments/f906fa24-ce66-40cc-8db1-8612d09ecf87
 headers:
 Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA  
@@ -88,11 +148,10 @@ Content-Type: application/json
 }
 
 ### 
-# get apartaments active status
-# @name getApartmentsActiveStatus
+@name getApartmentsActiveStatus
 POST {{baseUrl}}/apartments/f906fa24-ce66-40cc-8db1-8612d09ecf87/active
 headers:
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
 Content-Type: application/json
 
 {
@@ -100,11 +159,10 @@ Content-Type: application/json
 }
 
 ###
-# get apartments by situation
-# @name getApartmentsAvailable
+@name getApartmentsAvailable
 POST {{baseUrl}}/apartments/available
 headers:
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwZXJzb24iOnsiaWQiOiIzNjhlMDZjMS1kNGM1LTQwYTctOWM4NS1kNjlhMDNkZTg3ZDciLCJjb2RlIjoiMSIsIm5hbWUiOiJBZG1pbmlzdHJhZG9yIGRvIFNpc3QiLCJlbWFpbCI6ImFkbWluQGFkbWluLmNvbSIsImFycXVpdm9faWQiOm51bGwsImFjY2VzcyI6ImFkbWluaXN0cmFkb3IiLCJwZXNzb2FfZmlzaWNhIjpudWxsLCJhY3RpdmUiOjEsImNyZWF0ZWRfYXQiOm51bGwsInVwZGF0ZWRfYXQiOm51bGx9LCJpYXQiOjE3NTM4MjMzNjUsImV4cCI6MTc1MzgyNjk2NX0.K8ipCqgqZ3JLLfLL3ZM8j-3lNHlN5Pq4xwTWw3mkuEA      
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50      
 Content-Type: application/json
 
 {
@@ -112,3 +170,310 @@ Content-Type: application/json
     "start_date": "2025-05-01",
     "end_date": "2025-12-31"
 }
+
+###
+@name getSettings
+GET {{baseUrl}}/settings  
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "page": 1,
+    "limit": 10
+}
+
+###
+
+@name getCash
+GET  {{baseUrl}}/cashbox
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+###
+
+@name postCash
+POST {{baseUrl}}/cashbox
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "initial_amount": 100
+}
+###
+
+@name getCashById
+GET  {{baseUrl}}/cashbox/15fc5fff-d767-4e81-afbf-a5421e149438
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+###
+
+@name getCashboxTransactions
+GET {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "page": 1,
+    "limit": 10
+}
+
+###
+
+@name createCashboxTransactionEntrada
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "15fc5fff-d767-4e81-afbf-a5421e149438",
+    "tipo": "entrada",
+    "valor": 250.00,
+    "descricao": "Pagamento de reserva - Quarto 10",
+    "metodo_pagamento": "dinheiro"
+}
+
+###
+
+@name createCashboxTransactionSaida
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "15fc5fff-d767-4e81-afbf-a5421e149438",
+    "tipo": "saida",
+    "valor": 50.00,
+    "descricao": "Compra de material de limpeza",
+    "metodo_pagamento": "dinheiro"
+}
+
+###
+
+@name createCashboxTransactionCartao
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "15fc5fff-d767-4e81-afbf-a5421e149438",
+    "tipo": "entrada",
+    "valor": 120.00,
+    "descricao": "Venda de bebidas - Bar",
+    "metodo_pagamento": "cartao_credito"
+}
+
+###
+
+@name createCashboxTransactionPix
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "15fc5fff-d767-4e81-afbf-a5421e149438",
+    "tipo": "entrada",
+    "valor": 300.00,
+    "descricao": "Check-out - Quarto 8 (2 diárias)",
+    "metodo_pagamento": "pix"
+}
+
+###
+
+@name getCashboxTransactionById
+GET {{baseUrl}}/cashbox-transactions/TRANSACTION_UUID_HERE
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+###
+
+@name cancelCashboxTransaction
+PUT {{baseUrl}}/cashbox-transactions/TRANSACTION_UUID_HERE/cancel
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "motivo": "Transação realizada por engano"
+}
+
+###
+
+@name getTransactionsByCashbox
+GET {{baseUrl}}/cashbox-transactions/by-caixa/15fc5fff-d767-4e81-afbf-a5421e149438
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "page": 1,
+    "limit": 20,
+    "data_inicio": "2025-01-01",
+    "data_fim": "2025-12-31"
+}
+
+###
+
+@name getCashboxReport
+POST {{baseUrl}}/cashbox-transactions/relatorio
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "data_inicio": "2025-01-01",
+    "data_fim": "2025-01-31",
+    "tipo": "geral",
+    "caixa_id": "15fc5fff-d767-4e81-afbf-a5421e149438"
+}
+
+###
+
+@name openDailyCashbox
+POST {{baseUrl}}/cashbox
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "initial_amount": 200.00
+}
+
+###
+
+@name checkinPayment
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST",
+    "tipo": "entrada",
+    "valor": 450.00,
+    "descricao": "Check-in - Reserva Sr. João Silva - Quarto 12 (3 diárias)",
+    "metodo_pagamento": "dinheiro"
+}
+
+###
+
+@name barSaleCard
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST",
+    "tipo": "entrada",
+    "valor": 85.50,
+    "descricao": "Venda Bar - 2 cervejas, 1 porção batata frita",
+    "metodo_pagamento": "cartao_debito"
+}
+
+###
+
+@name checkoutPaymentPix
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST",
+    "tipo": "entrada",
+    "valor": 300.00,
+    "descricao": "Check-out - Sra. Maria Santos - Quarto 5 (2 diárias)",
+    "metodo_pagamento": "pix"
+}
+
+###
+
+@name operationalExpense
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST",
+    "tipo": "saida",
+    "valor": 75.00,
+    "descricao": "Compra de produtos de limpeza e higiene",
+    "metodo_pagamento": "dinheiro"
+}
+
+###
+
+@name cashWithdrawal
+POST {{baseUrl}}/cashbox-transactions
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST",
+    "tipo": "saida",
+    "valor": 500.00,
+    "descricao": "Sangria - Depósito bancário",
+    "metodo_pagamento": "dinheiro"
+}
+
+###
+
+@name dailyReport
+POST {{baseUrl}}/cashbox-transactions/relatorio
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+{
+    "data_inicio": "2025-01-15",
+    "data_fim": "2025-01-15",
+    "tipo": "diario",
+    "caixa_id": "CASHBOX_UUID_FROM_PREVIOUS_REQUEST"
+}
+
+###
+
+@name currentCashboxStatus
+GET {{baseUrl}}/cashbox/CASHBOX_UUID_FROM_PREVIOUS_REQUEST
+headers:
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vc2lzdGVtYXJlc2VydmEubG9jYWxob3N0OjgwODAiLCJzdWIiOiIxIiwiZXhwIjoxNzU1MDk1NzQ3fQ.epEPzC4EmxW5INMYMVlUOYatvMSoC7YMR-_4xmkXY50
+Content-Type: application/json
+
+###
+
+@name testPermissionDenied
+POST {{baseUrl}}/apartments
+headers:
+Authorization: Bearer TOKEN_USUARIO_SEM_PERMISSAO_APARTMENTS_CREATE
+Content-Type: application/json
+
+{
+    "name": "11",
+    "category": "Residential",
+    "active": "1",
+    "description": "Teste sem permissão apartments.create",
+    "situation": "Disponivel"
+}
+
+###
+
+@name testInvalidToken
+GET {{baseUrl}}/apartments
+headers:
+Authorization: Bearer token_invalido
+Content-Type: application/json
+
+###

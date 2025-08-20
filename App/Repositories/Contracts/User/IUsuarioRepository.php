@@ -2,13 +2,16 @@
 
 namespace App\Repositories\Contracts\User;
 
-interface IUsuarioRepository {
-    
+interface IUsuarioRepository
+{
+
     public function all(array $params = []);
 
     public function create(array $data, bool $forceNewPassword = true);
 
     public function findByEmail(string $email);
+
+    public function findByIdWithPhoto(int $id);
 
     public function findByEmailAndSector(string $email);
 
@@ -20,7 +23,7 @@ interface IUsuarioRepository {
 
     public function delete(int $id);
 
-    public function remove($id) :?bool;
+    public function remove($id): ?bool;
 
     public function findPermissions(int $usuario_id);
 

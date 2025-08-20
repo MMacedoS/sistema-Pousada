@@ -2,7 +2,8 @@
 
 namespace App\Repositories\Contracts\Permission;
 
-interface IPermissaoRepository {
+interface IPermissaoRepository
+{
 
     public function all(array $params = []);
 
@@ -17,4 +18,10 @@ interface IPermissaoRepository {
     public function findByUuid(string $uuid);
 
     public function findById(int $id);
+
+    public function getPermissionsByUserId(int $userId);
+
+    public function assignPermission(int $userId, int $permissionId): bool;
+
+    public function removePermission(int $userId, int $permissionId): bool;
 }

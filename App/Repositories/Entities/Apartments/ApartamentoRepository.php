@@ -10,8 +10,8 @@ use App\Repositories\Traits\FindTrait;
 
 class ApartamentoRepository extends SingletonInstance implements IApartamentoRepository
 {
-    private CONST CLASS_NAME = Apartamento::class;
-    private CONST TABLE = "apartamentos";
+    private const CLASS_NAME = Apartamento::class;
+    private const TABLE = "apartamentos";
     use FindTrait;
 
     public function __construct()
@@ -31,17 +31,21 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $conditions[] = 'name = :name';
             $bindings[':name'] = $params['name'];
         }
-        
+
         if (isset($params['category'])) {
             $conditions[] = 'category = :category';
             $bindings[':category'] = $params['category'];
         }
-        
+
         if (isset($params['active'])) {
             $conditions[] = 'active = :active';
             $bindings[':active'] = $params['active'];
         }
-        
+
+        $conditions[] = 'is_deleted = :is_deleted';
+        $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
+
+
         if (count($conditions) > 0) {
             $sql .= " WHERE " . implode(" AND ", $conditions);
         }
@@ -51,13 +55,12 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute($bindings);
-            
-            return $stmt->fetchAll(\PDO::FETCH_CLASS);    
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\PDOException $e) {
-            
+
             throw new \Exception("Database query error: " . $e->getMessage());
         }
-        
     }
 
     public function apartmentsAvailable(array $params = [])
@@ -103,8 +106,8 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
         try {
             $stmt = $this->conn->prepare($sql);
             $stmt->execute($bindings);
-            
-            return $stmt->fetchAll(\PDO::FETCH_CLASS);    
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS);
         } catch (\PDOException $e) {
             throw new \Exception("Database query error: " . $e->getMessage());
         }
@@ -112,13 +115,13 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
 
     public function create(array $data)
     {
-        if(empty($data)) {
+        if (empty($data)) {
             return null;
         }
 
         try {
             $apartment = $this->model->create($data);
-            
+
             $stmt = $this->conn->prepare(
                 "INSERT INTO apartamentos SET 
                 uuid = :uuid,
@@ -129,7 +132,7 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
                 situation = :situation
                 "
             );
-            $created = $stmt->execute([
+            $stmt->execute([
                 ':uuid' => $apartment->uuid,
                 ':name' => $apartment->name,
                 ':description' => $apartment->description,
@@ -138,11 +141,13 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
                 ':situation' => $apartment->situation
             ]);
 
-            if($created) {
-                return $this->findByUuid($apartment->uuid);
+            $created = $this->findByUuid($apartment->uuid);
+
+            if (is_null($created)) {
+                return null;
             }
 
-            return null;
+            return $created;
         } catch (\Throwable $th) {
             return null;
         }
@@ -150,19 +155,19 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
 
     public function update(array $data, int $id)
     {
-        if(empty($data)) {
+        if (empty($data)) {
             return null;
         }
 
         $apartment = $this->findById($id);
 
-        if (is_null($apartment)){
+        if (is_null($apartment)) {
             return null;
         }
-        
+
         try {
             $apartment = $this->model->update($data, $apartment);
-            
+
             $stmt = $this->conn->prepare(
                 "UPDATE apartamentos SET 
                     name = :name,
@@ -183,7 +188,7 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
                 ':id' => $id
             ]);
 
-            if($created) {
+            if ($created) {
                 return $this->findById($id);
             }
 
@@ -196,7 +201,7 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
 
     public function delete(int $id)
     {
-        if(is_null($id)) {
+        if (is_null($id)) {
             return null;
         }
 
@@ -207,18 +212,18 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
         }
 
         try {
-            $stmt = $this->conn->prepare("DELETE FROM apartamentos WHERE id = :id");
-        
-            return $stmt->execute([':id' => $id]) ? $apartment : null;    
+            $stmt = $this->conn->prepare("UPDATE apartamentos SET is_deleted = 1 WHERE id = :id");
+
+            return $stmt->execute([':id' => $id]) ? $apartment : null;
         } catch (\Throwable $th) {
             //throw $th;
             return null;
-        }    
+        }
     }
 
     public function changeActiveStatus(int $id)
     {
-        if(is_null($id)) {
+        if (is_null($id)) {
             return null;
         }
 
@@ -229,7 +234,7 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
         }
 
         $stmt = $this->conn->prepare("UPDATE apartamentos SET active = :active  WHERE id = :id");
-        
+
         $stmt->execute([
             ':id' => $id,
             ':active' => $apartment->active == 1 ? '0' : '1'

@@ -46,28 +46,60 @@ Criar uma aplicação robusta, escalável e de fácil manutenção, utilizando *
 └── README.md
 ```
 
-## Principais Funcionalidades
-
-- Cadastro, autenticação e gerenciamento de usuários (JWT)
-- Cadastro e gerenciamento de reservas
-- Gerenciamento de quartos e disponibilidade
-- Interface limpa e intuitiva
+📋 Funcionalidades do Sistema
+✅ Gestão completa de reservas
+✅ Controle de ocupação de apartamentos
+✅ Sistema de check-in/check-out
+✅ Controle financeiro e de caixa
+✅ Vendas e consumo de produtos
+✅ Gestão de estoque automatizada
+✅ Sistema de permissões de usuário
+✅ Configurações personalizáveis
 
 ## Como Executar
 
 1. Clone o repositório:
-    ```bash
-    git clone https://github.com/MMacedoS/sistemaReserva.git
-    ```
+   ```bash
+   git clone https://github.com/MMacedoS/sistemaReserva.git
+   ```
 2. Instale as dependências:
-    ```bash
-    composer install
-    ```
+   ```bash
+   composer install
+   ```
 3. Configure o arquivo `.env` com as variáveis necessárias.
-4. Inicie o servidor embutido do PHP:
-    ```bash
-    php -S localhost:8000 -t public
-    ```
+4. Execute a estrutura do banco de dados:
+   ```bash
+   # Importe o arquivo DB/estrutura.sql no seu banco
+   mysql -u root -p banco < DB/estrutura.sql
+   ```
+5. **Popule o banco com dados iniciais (seeds)**:
+
+   ```bash
+   # Execute em ordem: primeiro usuários, depois permissões
+   mysql -u root -p banco < DB/Seeds/usuarios-seed.sql
+   mysql -u root -p banco < DB/Seeds/permissoes-seed.sql
+
+   # Para Docker:
+   docker exec -i SEU_CONTAINER_MYSQL mysql -u root -p banco < DB/Seeds/usuarios-seed.sql
+   docker exec -i SEU_CONTAINER_MYSQL mysql -u root -p banco < DB/Seeds/permissoes-seed.sql
+   ```
+
+6. Inicie o servidor embutido do PHP:
+   ```bash
+   php -S localhost:8000 -t public
+   ```
+
+### 👥 Usuários Padrão (Seeds)
+
+Após executar os seeds, você terá acesso com:
+
+- **Admin**: admin@admin.com / password (44 permissões)
+- **Gerente**: gerente@hotel.com / password (29 permissões)
+- **Recepção**: recepcao@hotel.com / password (11 permissões)
+- **Caixa**: caixa@hotel.com / password (12 permissões)
+- **Bar**: bar@hotel.com / password (9 permissões)
+
+**Nota:** Sistema com 44 permissões granulares organizadas por módulos. Altere as senhas após o primeiro login.
 
 ## Contribuição
 

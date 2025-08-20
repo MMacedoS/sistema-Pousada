@@ -12,12 +12,14 @@ class Usuario
     public ?string $uuid;
     public ?string $code;
     public ?string $name;
-    public ?string $email; 
+    public ?string $email;
     public ?string $arquivo_id;
+    public ?string $photo;
     public ?string $password;
     public ?string $send_access;
     public ?string $access;
     public $pessoa_fisica;
+    public $is_deleted;
     public $active;
     public $created_at;
     public $updated_at;

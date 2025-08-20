@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Transformers\Apartment;
+
+use App\Models\Apartment\Apartamento;
+
+class ApartmentTransformer
+{
+    public function transform(Apartamento $apartment)
+    {
+        if (!$apartment) {
+            return null;
+        }
+
+        if (is_array($apartment)) {
+            $apartment = (object) $apartment;
+        }
+
+        return [
+            'id' => $apartment->uuid ?? null,
+            'name' => $apartment->name ?? null,
+            'description' => $apartment->description ?? null,
+            'category' => $apartment->category ?? null,
+            'situation' => $apartment->situation ?? null,
+            'active' => $apartment->active ?? null,
+            'created_at' => $apartment->created_at ?? null,
+            'updated_at' => $apartment->updated_at ?? null,
+        ];
+    }
+
+    public function transformCollection(array $apartments)
+    {
+        return array_map(fn($apartment) => $this->transform($apartment), $apartments);
+    }
+}
