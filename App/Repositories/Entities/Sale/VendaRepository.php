@@ -14,23 +14,17 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
 {
     private const CLASS_NAME = Venda::class;
     private const TABLE = 'vendas';
+    private $itemVendaRepository;
 
     use FindTrait;
 
     public function __construct()
     {
-        try {
-            $database = Database::getInstance();
-            $this->conn = $database->getConnection();
+        $database = Database::getInstance();
+        $this->conn = $database->getConnection();
 
-            if ($this->conn === null) {
-                throw new \Exception("Falha na conexão com o banco de dados no VendaRepository");
-            }
-
-            $this->model = new Venda();
-        } catch (\Exception $e) {
-            throw new \Exception("Erro no construtor VendaRepository: " . $e->getMessage());
-        }
+        $this->model = new Venda();
+        $this->itemVendaRepository = ItemVendaRepository::getInstance();
     }
 
     public function all(array $params = [])
@@ -39,7 +33,7 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
                 FROM " . self::TABLE . " v 
                 LEFT JOIN usuarios u ON v.id_usuario = u.id 
                 LEFT JOIN reservas r ON v.id_reserva = r.id 
-                WHERE v.status = 1";
+                WHERE 1=1 ";
 
         $filters = [];
 
@@ -266,7 +260,7 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
     public function closeSale(int $id)
     {
         try {
-            $sql = "UPDATE " . self::TABLE . " SET status = 2 WHERE id = :id";
+            $sql = "UPDATE " . self::TABLE . " SET status = 'Finalizada' WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':id' => $id]);
 
@@ -280,9 +274,11 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
     public function cancelSale(int $id)
     {
         try {
-            $sql = "UPDATE " . self::TABLE . " SET status = 0 WHERE id = :id";
+            $sql = "UPDATE " . self::TABLE . " SET status = 'Cancelada' WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':id' => $id]);
+
+            $this->itemVendaRepository->updateStatusByVenda($id, 0);
 
             return $stmt->rowCount() > 0;
         } catch (\Exception $e) {

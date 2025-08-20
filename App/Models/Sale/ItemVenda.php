@@ -27,10 +27,10 @@ class ItemVenda
         $item->id = $data['id'] ?? null;
         $item->uuid = $data['uuid'] ?? $this->generateUUID();
         $item->id_venda = $data['id_venda'] ?? null;
-        $item->id_produto = $data['id_produto'] ?? null;
+        $item->id_produto = $data['product_id'] ?? null;
         $item->status = $data['status'] ?? 1;
         $item->quantity = $data['quantity'] ?? 1;
-        $item->amount_item = $data['amount_item'] ?? 0.00;
+        $item->amount_item = $data['unit_price'] ?? 0.00;
         $item->id_usuario = $data['id_usuario'] ?? null;
         $item->created_at = $data['created_at'] ?? null;
         $item->updated_at = $data['updated_at'] ?? null;

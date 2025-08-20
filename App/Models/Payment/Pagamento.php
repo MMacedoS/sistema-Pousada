@@ -29,8 +29,8 @@ class Pagamento
         $pagamento->id = $data['id'] ?? null;
         $pagamento->uuid = $data['uuid'] ?? $this->generateUUID();
         $pagamento->id_reserva = $data['id_reserva'] ?? null;
-        $pagamento->type_payment = $data['type_payment'] ?? 'Dinheiro';
-        $pagamento->payment_amount = $data['payment_amount'] ?? 0.00;
+        $pagamento->type_payment = $data['method'] ?? 'cash';
+        $pagamento->payment_amount = $data['amount'] ?? 0.00;
         $pagamento->dt_payment = $data['dt_payment'] ?? date('Y-m-d');
         $pagamento->id_venda = $data['id_venda'] ?? null;
         $pagamento->status = $data['status'] ?? 1;

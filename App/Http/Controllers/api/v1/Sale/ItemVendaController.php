@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Sale\IItemVendaRepository;
 use App\Repositories\Contracts\Product\IProdutoRepository;
+use App\Repositories\Contracts\Sale\IVendaRepository;
 use App\Transformers\Sale\ItemVendaTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
@@ -15,22 +16,30 @@ class ItemVendaController extends Controller
     protected $itemVendaRepository;
     protected $produtoRepository;
     protected $itemVendaTransformer;
+    protected $vendaRepository;
 
     public function __construct(
         IItemVendaRepository $itemVendaRepository,
         IProdutoRepository $produtoRepository,
-        ItemVendaTransformer $itemVendaTransformer
+        ItemVendaTransformer $itemVendaTransformer,
+        IVendaRepository $vendaRepository
     ) {
         $this->itemVendaRepository = $itemVendaRepository;
         $this->produtoRepository = $produtoRepository;
         $this->itemVendaTransformer = $itemVendaTransformer;
+        $this->vendaRepository = $vendaRepository;
     }
 
-    public function index(Request $request)
+    public function index(Request $request, string $sale_uuid)
     {
         $this->checkPermission('sales.view');
 
+        $sale = $this->vendaRepository->findByUuid($sale_uuid);
+
         $params = $request->getQueryParams();
+
+        $params['id_venda'] = $sale->id;
+
         $items = $this->itemVendaRepository->all($params);
 
         $perPage = $request->getParam('limit') ?? 10;
@@ -53,7 +62,7 @@ class ItemVendaController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, string $sale_uuid)
     {
         $this->checkPermission('sales.create');
 
@@ -61,15 +70,29 @@ class ItemVendaController extends Controller
 
         $validator = new Validator($data);
         $rules = [
-            'id_venda' => 'required',
-            'id_produto' => 'required',
+            'product_id' => 'required',
             'quantity' => 'required',
-            'amount_item' => 'required'
+            'unit_price' => 'required'
         ];
 
         if (!$validator->validate($rules)) {
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
         }
+
+        $sale = $this->vendaRepository->findByUuid($sale_uuid);
+
+        if (!$sale) {
+            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
+        }
+
+        $product = $this->produtoRepository->findByUuid($data['product_id']);
+
+        if (!$product) {
+            return $this->responseJson(['error' => 'Produto não encontrado'], 404);
+        }
+
+        $data['id_venda'] = $sale->id;
+        $data['product_id'] = $product->id;
 
         $userId = $this->authUserByApi();
         $data['id_usuario'] = $userId;
@@ -79,7 +102,7 @@ class ItemVendaController extends Controller
         return $this->responseJson($this->itemVendaTransformer->transform($item), 201);
     }
 
-    public function show(Request $request, string $uuid)
+    public function show(Request $request, string $sale_uuid, string $uuid)
     {
         $this->checkPermission('sales.view');
 
@@ -94,9 +117,15 @@ class ItemVendaController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $uuid)
+    public function update(Request $request, string $sale_uuid, string $uuid)
     {
-        $this->checkPermission('sales.update');
+        $this->checkPermission('sales.edit');
+
+        $sale = $this->vendaRepository->findByUuid($sale_uuid);
+
+        if (!$sale) {
+            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
+        }
 
         $item = $this->itemVendaRepository->findByUuid($uuid);
 
@@ -113,9 +142,15 @@ class ItemVendaController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, string $uuid)
+    public function destroy(Request $request, string $sale_uuid, string $uuid)
     {
-        $this->checkPermission('sales.delete');
+        $this->checkPermission('sales.cancel');
+
+        $sale = $this->vendaRepository->findByUuid($sale_uuid);
+
+        if (!$sale) {
+            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
+        }
 
         $item = $this->itemVendaRepository->findByUuid($uuid);
 
@@ -132,9 +167,15 @@ class ItemVendaController extends Controller
         return $this->responseJson(['message' => 'Item removido com sucesso']);
     }
 
-    public function updateQuantity(Request $request, string $uuid)
+    public function updateQuantity(Request $request, string $sale_uuid, string $uuid)
     {
-        $this->checkPermission('sales.update');
+        $this->checkPermission('sales.edit');
+
+        $sale = $this->vendaRepository->findByUuid($sale_uuid);
+
+        if (!$sale) {
+            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
+        }
 
         $item = $this->itemVendaRepository->findByUuid($uuid);
 

@@ -35,6 +35,7 @@ class PagamentoController extends Controller
         $this->checkPermission('payments.view');
 
         $params = $request->getQueryParams();
+        $params['status'] = $params['status'] ?? 1;
         $pagamentos = $this->pagamentoRepository->all($params);
 
         $perPage = $request->getParam('limit') ?? 10;
@@ -65,13 +66,23 @@ class PagamentoController extends Controller
 
         $validator = new Validator($data);
         $rules = [
-            'type_payment' => 'required',
-            'payment_amount' => 'required',
-            'id_caixa' => 'required'
+            'method' => 'required',
+            'amount' => 'required',
+            'cashbox_id' => 'required'
         ];
 
         if (!$validator->validate($rules)) {
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
+        }
+
+        $sale = $this->vendaRepository->findByUuid($data['sale_id'] ?? null);
+        if ($sale) {
+            $data['id_venda'] = $sale->id;
+        }
+
+        $cashbox = $this->caixaRepository->findByUuid($data['cashbox_id'] ?? null);
+        if ($cashbox) {
+            $data['id_caixa'] = $cashbox->id;
         }
 
         $userId = $this->authUserByApi();
@@ -135,45 +146,9 @@ class PagamentoController extends Controller
         return $this->responseJson(['message' => 'Pagamento removido com sucesso']);
     }
 
-    public function processSalePayment(Request $request, string $vendaUuid)
-    {
-        $this->checkPermission('payments.create');
-
-        $data = $request->getJsonBody();
-
-        $validator = new Validator($data);
-        $rules = [
-            'type_payment' => 'required',
-            'payment_amount' => 'required',
-            'id_caixa' => 'required'
-        ];
-
-        if (!$validator->validate($rules)) {
-            return $this->responseJson(['errors' => $validator->getErrors()], 422);
-        }
-
-        $venda = $this->vendaRepository->findByUuid($vendaUuid);
-
-        if (!$venda) {
-            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
-        }
-
-        $userId = $this->authUserByApi();
-        $data['id_venda'] = $venda->id;
-        $data['id_usuario'] = $userId;
-        $data['payment_amount'] = $data['payment_amount'] ?? $venda->amount_sale;
-
-        $pagamento = $this->pagamentoRepository->create($data);
-
-        return $this->responseJson([
-            'message' => 'Pagamento da venda processado com sucesso',
-            'data' => $this->pagamentoTransformer->transform($pagamento)
-        ], 201);
-    }
-
     public function cancelPayment(Request $request, string $uuid)
     {
-        $this->checkPermission('payments.cancel');
+        $this->checkPermission('payments.cancell');
 
         $pagamento = $this->pagamentoRepository->findByUuid($uuid);
 
@@ -181,11 +156,14 @@ class PagamentoController extends Controller
             return $this->responseJson(['error' => 'Pagamento não encontrado'], 404);
         }
 
-        $pagamentoCanceled = $this->pagamentoRepository->update(['status' => 0], $pagamento->id);
+        $pagamentoCanceled = $this->pagamentoRepository->cancelPayment($pagamento->id);
+
+        if (!$pagamentoCanceled) {
+            return $this->responseJson(['error' => 'Erro ao cancelar pagamento'], 500);
+        }
 
         return $this->responseJson([
-            'message' => 'Pagamento cancelado com sucesso',
-            'data' => $this->pagamentoTransformer->transform($pagamentoCanceled)
+            'message' => 'Pagamento cancelado com sucesso'
         ]);
     }
 
@@ -203,6 +181,6 @@ class PagamentoController extends Controller
 
         $transformed = $this->pagamentoTransformer->transformCollection($pagamentos);
 
-        return $this->responseJson(['pagamentos' => $transformed]);
+        return $this->responseJson(['payments' => $transformed]);
     }
 }

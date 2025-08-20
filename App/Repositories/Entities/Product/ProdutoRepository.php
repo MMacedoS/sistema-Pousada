@@ -242,7 +242,7 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
     public function updateStock(int $id, int $quantity)
     {
         try {
-            $sql = "UPDATE estoque SET quantity = :quantity WHERE id_produto = :id_produto";
+            $sql = "UPDATE estoque SET stock = :quantity WHERE id_produto = :id_produto";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([
                 ':quantity' => $quantity,

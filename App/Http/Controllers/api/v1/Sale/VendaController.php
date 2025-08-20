@@ -45,7 +45,7 @@ class VendaController extends Controller
         $transformed = $this->vendaTransformer->transformCollection($paginator->getPaginatedItems());
 
         return $this->responseJson([
-            'vendas' => $transformed,
+            'sales' => $transformed,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -65,8 +65,7 @@ class VendaController extends Controller
 
         $validator = new Validator($data);
         $rules = [
-            'name' => 'required',
-            'amount_sale' => 'required'
+            'sale_name' => 'required',
         ];
 
         if (!$validator->validate($rules)) {
@@ -74,7 +73,7 @@ class VendaController extends Controller
         }
 
         $userId = $this->authUserByApi();
-        $data['id_usuario'] = $userId;
+        $data['id_usuario'] = (int)$userId;
 
         $venda = $this->vendaRepository->create($data);
 
@@ -98,7 +97,7 @@ class VendaController extends Controller
 
     public function update(Request $request, string $uuid)
     {
-        $this->checkPermission('sales.update');
+        $this->checkPermission('sales.edit');
 
         $venda = $this->vendaRepository->findByUuid($uuid);
 
@@ -136,7 +135,7 @@ class VendaController extends Controller
 
     public function closeSale(Request $request, string $uuid)
     {
-        $this->checkPermission('sales.close');
+        $this->checkPermission('sale.close');
 
         $venda = $this->vendaRepository->findByUuid($uuid);
 
@@ -148,7 +147,6 @@ class VendaController extends Controller
 
         return $this->responseJson([
             'message' => 'Venda fechada com sucesso',
-            'data' => $this->vendaTransformer->transform($vendaClosed)
         ]);
     }
 
@@ -162,67 +160,11 @@ class VendaController extends Controller
             return $this->responseJson(['error' => 'Venda não encontrada'], 404);
         }
 
-        $vendaCanceled = $this->vendaRepository->cancelSale($venda->id);
+        $this->vendaRepository->cancelSale($venda->id);
 
         return $this->responseJson([
             'message' => 'Venda cancelada com sucesso',
-            'data' => $this->vendaTransformer->transform($vendaCanceled)
         ]);
-    }
-
-    public function addItem(Request $request, string $uuid)
-    {
-        $this->checkPermission('sales.update');
-
-        $data = $request->getJsonBody();
-
-        $validator = new Validator($data);
-        $rules = [
-            'id_produto' => 'required',
-            'quantity' => 'required',
-            'amount_item' => 'required'
-        ];
-
-        if (!$validator->validate($rules)) {
-            return $this->responseJson(['errors' => $validator->getErrors()], 422);
-        }
-
-        $venda = $this->vendaRepository->findByUuid($uuid);
-
-        if (!$venda) {
-            return $this->responseJson(['error' => 'Venda não encontrada'], 404);
-        }
-
-        $userId = $this->authUserByApi();
-        $data['id_venda'] = $venda->id;
-        $data['id_usuario'] = $userId;
-
-        $item = $this->itemVendaRepository->create($data);
-
-        return $this->responseJson([
-            'message' => 'Item adicionado à venda com sucesso',
-            'data' => $item
-        ], 201);
-    }
-
-    public function removeItem(Request $request, string $uuid, string $itemUuid)
-    {
-        $this->checkPermission('sales.update');
-
-        $venda = $this->vendaRepository->findByUuid($uuid);
-        $item = $this->itemVendaRepository->findByUuid($itemUuid);
-
-        if (!$venda || !$item) {
-            return $this->responseJson(['error' => 'Venda ou item não encontrado'], 404);
-        }
-
-        $deleted = $this->itemVendaRepository->delete($item->id);
-
-        if (!$deleted) {
-            return $this->responseJson(['error' => 'Erro ao remover item'], 500);
-        }
-
-        return $this->responseJson(['message' => 'Item removido da venda com sucesso']);
     }
 
     public function getSalesReport(Request $request)

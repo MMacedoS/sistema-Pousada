@@ -251,4 +251,21 @@ class ItemVendaRepository extends SingletonInstance implements IItemVendaReposit
             return 0;
         }
     }
+
+    public function updateStatusByVenda(int $vendaId, int $status)
+    {
+        try {
+            $sql = "UPDATE " . self::TABLE . " SET status = :status WHERE id_venda = :venda_id";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                ':status' => $status,
+                ':venda_id' => $vendaId
+            ]);
+
+            return $stmt->rowCount() > 0;
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao atualizar status dos itens da venda: " . $e->getMessage());
+            throw new \Exception("Erro ao atualizar status dos itens da venda");
+        }
+    }
 }

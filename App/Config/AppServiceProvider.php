@@ -6,6 +6,7 @@ use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
 use App\Repositories\Contracts\File\IArquivoRepository;
+use App\Repositories\Contracts\Payment\IPagamentoRepository;
 use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
 use App\Repositories\Contracts\Product\IProdutoRepository;
@@ -18,6 +19,7 @@ use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
 use App\Repositories\Entities\Cashbox\TransacaoCaixaRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
+use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Person\PessoaFisicaRepository;
 use App\Repositories\Entities\Product\ProdutoRepository;
@@ -102,6 +104,11 @@ class AppServiceProvider
         $this->container->set(
             IMesaRepository::class,
             new MesaRepository()
+        );
+
+        $this->container->set(
+            IPagamentoRepository::class,
+            new PagamentoRepository()
         );
     }
 }
