@@ -40,7 +40,7 @@ class PessoaFisica
         $pessoa_fisica->address = isset($data['address']) ? $data['address'] : null;
         $pessoa_fisica->phone = isset($data['phone']) ? $data['phone'] : null;
         $pessoa_fisica->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null;
-        $pessoa_fisica->birthday = isset($data['birthday']) ? $data['birthday'] : null;
+        $pessoa_fisica->birthday = isset($data['birthday']) && !empty($data['birthday']) ? $data['birthday'] : date("Y-m-d");
         $pessoa_fisica->doc = isset($data['doc']) ? $data['doc'] : null;
         $pessoa_fisica->type_doc = isset($data['type_doc']) ? $data['type_doc'] : null;
         $pessoa_fisica->gender = isset($data['gender']) ? $data['gender'] : null;

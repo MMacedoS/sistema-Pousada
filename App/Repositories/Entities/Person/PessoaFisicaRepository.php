@@ -127,7 +127,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                     name = :name,
                     social_name = :social_name,
                     email = :email,
-                    birthday = :birthday,
                     doc = :doc,
                     type_doc = :type_doc,
                     phone = :phone,
@@ -142,7 +141,6 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                 ':name' => $pessoa_fisica->name,
                 ':social_name' => $pessoa_fisica->social_name,
                 ':email' => $pessoa_fisica->email,
-                ':birthday' => $pessoa_fisica->birthday,
                 ':phone' => $pessoa_fisica->phone,
                 ':type_doc' => $pessoa_fisica->type_doc,
                 ':address' => $pessoa_fisica->address,
@@ -154,7 +152,7 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
             }
             return $this->findById($id);
         } catch (\Throwable $th) {
-            LoggerHelper::logInfo($th->getMessage());
+            LoggerHelper::logInfo("Pessoa: " . $th->getMessage());
             return null;
         }
     }

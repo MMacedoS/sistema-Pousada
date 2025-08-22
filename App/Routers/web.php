@@ -10,6 +10,7 @@ use App\Http\Controllers\api\v1\Apartments\ApartamentoController;
 use App\Http\Controllers\api\v1\Cashbox\CaixaController;
 use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaController;
 use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaUsuarioController;
+use App\Http\Controllers\api\v1\Customer\ClienteController;
 use App\Http\Controllers\api\v1\Employees\FuncionariosController;
 use App\Http\Controllers\api\v1\Payment\PagamentoController;
 use App\Http\Controllers\api\v1\Permission\PermissaoController;
@@ -38,6 +39,7 @@ $vendaController = $container->get(VendaController::class);
 $itemVendaController = $container->get(ItemVendaController::class);
 $pagamentoController = $container->get(PagamentoController::class);
 $transacaoCaixaUsuarioController = $container->get(TransacaoCaixaUsuarioController::class);
+$clienteController = $container->get(ClienteController::class);
 
 $router = new Router();
 $auth = new Auth();
@@ -52,5 +54,6 @@ require_once __DIR__ . '/api/v1/permission/permissionRouter.php';
 require_once __DIR__ . '/api/v1/products/productsRouter.php';
 require_once __DIR__ . '/api/v1/sales/salesRouter.php';
 require_once __DIR__ . '/api/v1/payments/paymentsRouter.php';
+require_once __DIR__ . '/api/v1/customer/customerRouter.php';
 
 return $router;
