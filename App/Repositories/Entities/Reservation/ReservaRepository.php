@@ -184,6 +184,8 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                 AND (
                     r.dt_checkin < :end_date
                     AND r.dt_checkout > :start_date
+                    AND r.situation IN ('Reservada', 'Confirmada', 'Hospedada')
+                    AND r.is_deleted = 0
                 )
                 WHERE r.id_apartamento IS NULL";
 
