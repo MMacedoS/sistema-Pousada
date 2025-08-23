@@ -16,6 +16,7 @@ use App\Http\Controllers\api\v1\Payment\PagamentoController;
 use App\Http\Controllers\api\v1\Permission\PermissaoController;
 use App\Http\Controllers\api\v1\Product\ProdutoController;
 use App\Http\Controllers\api\v1\Profile\PerfilController;
+use App\Http\Controllers\api\v1\Reservation\ReservaController;
 use App\Http\Controllers\api\v1\Sale\ItemVendaController;
 use App\Http\Controllers\api\v1\Sale\VendaController;
 use App\Http\Controllers\api\v1\Settings\ConfiguracaoController;
@@ -40,6 +41,7 @@ $itemVendaController = $container->get(ItemVendaController::class);
 $pagamentoController = $container->get(PagamentoController::class);
 $transacaoCaixaUsuarioController = $container->get(TransacaoCaixaUsuarioController::class);
 $clienteController = $container->get(ClienteController::class);
+$reservaController = $container->get(ReservaController::class);
 
 $router = new Router();
 $auth = new Auth();
@@ -55,5 +57,6 @@ require_once __DIR__ . '/api/v1/products/productsRouter.php';
 require_once __DIR__ . '/api/v1/sales/salesRouter.php';
 require_once __DIR__ . '/api/v1/payments/paymentsRouter.php';
 require_once __DIR__ . '/api/v1/customer/customerRouter.php';
+require_once __DIR__ . '/api/v1/reservation/reservationRouter.php';
 
 return $router;

@@ -11,6 +11,8 @@ use App\Repositories\Contracts\Payment\IPagamentoRepository;
 use App\Repositories\Contracts\Permission\IPermissaoRepository;
 use App\Repositories\Contracts\Person\IPessoaFisicaRepository;
 use App\Repositories\Contracts\Product\IProdutoRepository;
+use App\Repositories\Contracts\Reservation\IReservaHospedeRepository;
+use App\Repositories\Contracts\Reservation\IReservaRepository;
 use App\Repositories\Contracts\Sale\IItemVendaRepository;
 use App\Repositories\Contracts\Sale\IVendaRepository;
 use App\Repositories\Contracts\Settings\IConfiguracaoRepository;
@@ -25,6 +27,8 @@ use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
 use App\Repositories\Entities\Person\PessoaFisicaRepository;
 use App\Repositories\Entities\Product\ProdutoRepository;
+use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
+use App\Repositories\Entities\Reservation\ReservaRepository;
 use App\Repositories\Entities\Sale\ItemVendaRepository;
 use App\Repositories\Entities\Sale\VendaRepository;
 use App\Repositories\Entities\Settings\ConfiguracaoRepository;
@@ -116,6 +120,16 @@ class AppServiceProvider
         $this->container->set(
             IClienteRepository::class,
             new ClienteRepository()
+        );
+
+        $this->container->set(
+            IReservaRepository::class,
+            new ReservaRepository()
+        );
+
+        $this->container->set(
+            IReservaHospedeRepository::class,
+            new ReservaHospedeRepository()
         );
     }
 }
