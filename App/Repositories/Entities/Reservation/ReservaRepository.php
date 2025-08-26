@@ -6,13 +6,17 @@ use App\Config\Database;
 use App\Config\SingletonInstance;
 use App\Models\Reservation\Reserva;
 use App\Repositories\Contracts\Reservation\IReservaRepository;
+use App\Repositories\Entities\Daily\DiariaRepository;
+use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
 use App\Repositories\Traits\FindTrait;
+use App\Utils\LoggerHelper;
 
 class ReservaRepository extends SingletonInstance implements IReservaRepository
 {
     private const CLASS_NAME = Reserva::class;
     private const TABLE = "reservas";
     private $reservaHospedeRepository;
+    private $diariaRepository;
 
     use FindTrait;
 
@@ -21,6 +25,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $this->model = new Reserva();
         $this->conn = Database::getInstance()->getConnection();
         $this->reservaHospedeRepository = ReservaHospedeRepository::getInstance();
+        $this->diariaRepository = DiariaRepository::getInstance();
     }
 
     public function all(array $params = [])
@@ -218,6 +223,35 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         return $stmt->fetchAll(\PDO::FETCH_CLASS);
     }
 
+    public function isApartmentAvailable(int $apartmentId, string $startDate, string $endDate, ?int $excludeReservationId = null): bool
+    {
+        $sql = "SELECT 1
+                FROM reservas r
+                WHERE r.id_apartamento = :apartment_id
+                  AND r.is_deleted = 0
+                  AND r.situation IN ('Reservada', 'Confirmada', 'Hospedada')
+                  AND r.dt_checkin < :end_date
+                  AND r.dt_checkout > :start_date";
+
+        $bindings = [
+            ':apartment_id' => $apartmentId,
+            ':start_date' => $startDate,
+            ':end_date'   => $endDate,
+        ];
+
+        if (!is_null($excludeReservationId)) {
+            $sql .= ' AND r.id <> :exclude_id';
+            $bindings[':exclude_id'] = $excludeReservationId;
+        }
+
+        $sql .= ' LIMIT 1';
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($bindings);
+        $conflict = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $conflict === false;
+    }
+
     public function changeApartment(string $uuid, array $params = [])
     {
         $reserva = $this->findByUuid($uuid);
@@ -288,5 +322,49 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($bindings);
         return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+
+    public function findFirstByApartmentId(string $apartmentId)
+    {
+        $today = date('Y-m-d');
+
+        $sql = "SELECT *
+            FROM reservas
+            WHERE 
+                id_apartamento = :id_apartamento
+                AND is_deleted = 0
+                AND (
+                    (situation IN ('Reservada', 'Confirmada')
+                    AND :today BETWEEN dt_checkin AND dt_checkout)
+                    OR situation = 'Hospedada'
+                )
+            LIMIT 1
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':id_apartamento' => $apartmentId,
+            ':today'          => $today,
+        ]);
+
+        $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, self::CLASS_NAME);
+        return $stmt->fetch() ?: null;
+    }
+
+    public function checkIn(string $id, string $userId)
+    {
+        $reserva = $this->findById($id);
+        if (is_null($reserva)) return null;
+        if ($reserva->situation !== 'Reservada' && $reserva->situation !== 'Confirmada') return null;
+
+        $stmt = $this->conn->prepare(
+            "UPDATE reservas SET situation = 'Hospedada', id_usuario = :id_usuario WHERE id = :id"
+        );
+
+        $ok = $stmt->execute([':id' => $reserva->id, ':id_usuario' => (int)$userId]);
+
+        $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+
+        return $ok ? $this->findById($reserva->id) : null;
     }
 }

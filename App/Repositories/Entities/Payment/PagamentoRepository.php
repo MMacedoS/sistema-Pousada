@@ -278,4 +278,24 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             throw new \Exception("Erro ao cancelar pagamento");
         }
     }
+
+    public function paidAmountByReservaId(int $reservaId): float
+    {
+        if ($reservaId <= 0) {
+            return 0.0;
+        }
+
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT SUM(payment_amount) as paid_amount FROM " . self::TABLE . " WHERE id_reserva = :reserva_id AND status = 1"
+            );
+            $stmt->execute([':reserva_id' => $reservaId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return $result['paid_amount'] !== null ? (float)$result['paid_amount'] : 0.0;
+        } catch (\Throwable $th) {
+            //throw $th;
+            return 0.0;
+        }
+    }
 }

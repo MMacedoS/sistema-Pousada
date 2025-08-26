@@ -6,6 +6,7 @@ use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
 use App\Repositories\Contracts\Customer\IClienteRepository;
+use App\Repositories\Contracts\Daily\IDiariaRepository;
 use App\Repositories\Contracts\File\IArquivoRepository;
 use App\Repositories\Contracts\Payment\IPagamentoRepository;
 use App\Repositories\Contracts\Permission\IPermissaoRepository;
@@ -22,6 +23,7 @@ use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
 use App\Repositories\Entities\Cashbox\TransacaoCaixaRepository;
 use App\Repositories\Entities\Customer\ClienteRepository;
+use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
 use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Entities\Permission\PermissaoRepository;
@@ -130,6 +132,11 @@ class AppServiceProvider
         $this->container->set(
             IReservaHospedeRepository::class,
             new ReservaHospedeRepository()
+        );
+
+        $this->container->set(
+            IDiariaRepository::class,
+            new DiariaRepository()
         );
     }
 }

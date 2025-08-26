@@ -82,7 +82,7 @@ class ReservaController extends Controller
         $customer = $this->clienteRepository->findByUuid($data['customer_id']);
 
         if (is_null($customer)) {
-            return $this->responseJson("Customer not found", 404);
+            return $this->responseJson("Customer not found", 422);
         }
 
         $user_id = $this->authUserByApi();
@@ -91,7 +91,21 @@ class ReservaController extends Controller
             foreach ($data['apartment_ids'] as $apartmentId) {
                 $apartment = $this->apartamentoRepository->findByUuid($apartmentId);
                 if (is_null($apartment)) {
-                    return $this->responseJson("Apartment not found", 404);
+                    return $this->responseJson("Apartment not found", 422);
+                }
+
+                $isAvailable = $this->reservaRepository->isApartmentAvailable(
+                    $apartment->id,
+                    $data['check_in'],
+                    $data['check_out']
+                );
+                if (!$isAvailable) {
+                    return $this->responseJson([
+                        'message' => 'Apartment not available for the selected period',
+                        'apartment_id' => $apartmentId,
+                        'check_in' => $data['check_in'],
+                        'check_out' => $data['check_out'],
+                    ], 422);
                 }
 
                 $reservationData = [
@@ -147,14 +161,14 @@ class ReservaController extends Controller
         $customer = $this->clienteRepository->findByUuid($data['customer_id']);
 
         if (is_null($customer)) {
-            return $this->responseJson("Customer not found", 404);
+            return $this->responseJson("Customer not found", 422);
         }
 
         $user_id = $this->authUserByApi();
 
         $apartment = $this->apartamentoRepository->findByUuid($data['apartment_id']);
         if (is_null($apartment)) {
-            return $this->responseJson("Apartment not found", 404);
+            return $this->responseJson("Apartment not found", 422);
         }
 
         $data['id_apartamento'] = $apartment->id;
@@ -202,14 +216,14 @@ class ReservaController extends Controller
         $customer = $this->clienteRepository->findByUuid($data['customer_id']);
 
         if (is_null($customer)) {
-            return $this->responseJson("Customer not found", 404);
+            return $this->responseJson("Customer not found", 422);
         }
 
         $user_id = $this->authUserByApi();
 
         $apartment = $this->apartamentoRepository->findByUuid($data['apartment_id']);
         if (is_null($apartment)) {
-            return $this->responseJson("Apartment not found", 404);
+            return $this->responseJson("Apartment not found", 422);
         }
 
         $data['id_apartamento'] = $apartment->id;
@@ -222,7 +236,22 @@ class ReservaController extends Controller
         $reserva = $this->reservaRepository->findByUuid($uuid);
 
         if (is_null($reserva)) {
-            return $this->responseJson("Reservation not found", 404);
+            return $this->responseJson("Reservation not found", 422);
+        }
+
+        $isAvailable = $this->reservaRepository->isApartmentAvailable(
+            $data['id_apartamento'],
+            $data['dt_checkin'],
+            $data['dt_checkout'],
+            $reserva->id
+        );
+        if (!$isAvailable) {
+            return $this->responseJson([
+                'message' => 'Apartment not available for the selected period',
+                'apartment_id' => $apartment->uuid ?? null,
+                'check_in' => $data['dt_checkin'],
+                'check_out' => $data['dt_checkout'],
+            ], 422);
         }
 
         $reserva = $this->reservaRepository->update($data, $reserva->id);
@@ -245,7 +274,7 @@ class ReservaController extends Controller
         $reserva = $this->reservaRepository->findByUuid($uuid);
 
         if (is_null($reserva)) {
-            return $this->responseJson("Reservation not found", 404);
+            return $this->responseJson("Reservation not found", 422);
         }
 
         $reserva = $this->reservaTransformer->transform($reserva);
@@ -261,7 +290,7 @@ class ReservaController extends Controller
         $reserva = $this->reservaRepository->findByUuid($uuid);
 
         if (is_null($reserva)) {
-            return $this->responseJson("Reservation not found", 404);
+            return $this->responseJson("Reservation not found", 422);
         }
 
         $deleted = $this->reservaRepository->delete($reserva->id);
@@ -314,7 +343,7 @@ class ReservaController extends Controller
 
         $reserva = $this->reservaRepository->changeApartment($uuid, $data);
         if (is_null($reserva)) {
-            return $this->responseJson("Reservation not found or change failed", 404);
+            return $this->responseJson("Reservation not found or change failed", 422);
         }
 
         return $this->responseJson([
@@ -344,5 +373,35 @@ class ReservaController extends Controller
         $data = $request->getQueryParams();
         $report = $this->reservaRepository->countReport($data);
         return $this->responseJson(['report' => $report]);
+    }
+
+    public function checkIn(Request $request, string $uuid)
+    {
+        $this->checkPermission('reservations.checkin');
+
+        $reserva = $this->reservaRepository->findByUuid($uuid);
+
+        if (is_null($reserva)) {
+            return $this->responseJson("Reservation not found", 422);
+        }
+
+        if ($reserva->situation === 'Hospedada') {
+            return $this->responseJson("Reservation already checked in", 422);
+        }
+
+        if ($reserva->situation === 'finalizada') {
+            return $this->responseJson("Reservation already checked out", 422);
+        }
+
+        $updatedReserva = $this->reservaRepository->checkIn($reserva->id, $this->authUserByApi());
+
+        if (is_null($updatedReserva)) {
+            return $this->responseJson("Check-in failed", 422);
+        }
+
+        return $this->responseJson([
+            'message' => 'Check-in successful',
+            'reservation' => $this->reservaTransformer->transform($updatedReserva),
+        ]);
     }
 }

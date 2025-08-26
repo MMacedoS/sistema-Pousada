@@ -97,6 +97,10 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $bindings[':active'] = $params['active'];
         }
 
+        $conditions[] = 'is_deleted = :is_deleted';
+        $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
+
+
         if (!empty($conditions)) {
             $sql .= ' AND ' . implode(' AND ', $conditions);
         }
