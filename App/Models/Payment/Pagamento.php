@@ -18,6 +18,7 @@ class Pagamento
     public ?int $status;
     public ?int $id_usuario;
     public ?int $id_caixa;
+    public ?int $is_deleted;
     public $created_at;
     public $updated_at;
 
@@ -36,6 +37,7 @@ class Pagamento
         $pagamento->status = $data['status'] ?? 1;
         $pagamento->id_usuario = $data['id_usuario'] ?? null;
         $pagamento->id_caixa = $data['id_caixa'] ?? null;
+        $pagamento->is_deleted = $data['is_deleted'] ?? 0;
         $pagamento->created_at = $data['created_at'] ?? null;
         $pagamento->updated_at = $data['updated_at'] ?? null;
 
@@ -51,6 +53,7 @@ class Pagamento
         $pagamento->id_venda = $data['id_venda'] ?? $pagamento->id_venda;
         $pagamento->status = $data['status'] ?? $pagamento->status;
         $pagamento->id_usuario = $data['id_usuario'] ?? $pagamento->id_usuario;
+        $pagamento->is_deleted = $data['is_deleted'] ?? $pagamento->is_deleted;
         $pagamento->id_caixa = $data['id_caixa'] ?? $pagamento->id_caixa;
 
         return $pagamento;

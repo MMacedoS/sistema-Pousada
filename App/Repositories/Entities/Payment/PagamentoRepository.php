@@ -268,7 +268,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
     public function cancelPayment(int $id)
     {
         try {
-            $sql = "UPDATE " . self::TABLE . " SET status = 0 WHERE id = :id";
+            $sql = "UPDATE " . self::TABLE . " SET status = 0, is_deleted = 0 WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':id' => $id]);
 

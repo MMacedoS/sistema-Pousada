@@ -7,6 +7,7 @@ use App\Http\Request\Request;
 use App\Repositories\Contracts\Payment\IPagamentoRepository;
 use App\Repositories\Contracts\Sale\IVendaRepository;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
+use App\Repositories\Contracts\Reservation\IReservaRepository;
 use App\Transformers\Payment\PagamentoTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
@@ -17,16 +18,19 @@ class PagamentoController extends Controller
     protected $vendaRepository;
     protected $caixaRepository;
     protected $pagamentoTransformer;
+    protected $reservaRepository;
 
     public function __construct(
         IPagamentoRepository $pagamentoRepository,
         IVendaRepository $vendaRepository,
         ICaixaRepository $caixaRepository,
+        IReservaRepository $reservaRepository,
         PagamentoTransformer $pagamentoTransformer
     ) {
         $this->pagamentoRepository = $pagamentoRepository;
         $this->vendaRepository = $vendaRepository;
         $this->caixaRepository = $caixaRepository;
+        $this->reservaRepository = $reservaRepository;
         $this->pagamentoTransformer = $pagamentoTransformer;
     }
 
@@ -75,9 +79,18 @@ class PagamentoController extends Controller
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
         }
 
-        $sale = $this->vendaRepository->findByUuid($data['sale_id'] ?? null);
-        if ($sale) {
-            $data['id_venda'] = $sale->id;
+        if (isset($data['sale_id'])) {
+            $sale = $this->vendaRepository->findByUuid($data['sale_id']);
+            if ($sale) {
+                $data['id_venda'] = $sale->id;
+            }
+        }
+
+        if (isset($data['reservation_id'])) {
+            $reserva = $this->reservaRepository->findByUuid($data['reservation_id']);
+            if ($reserva) {
+                $data['id_reserva'] = $reserva->id;
+            }
         }
 
         $cashbox = $this->caixaRepository->findByUuid($data['cashbox_id'] ?? null);
@@ -178,6 +191,23 @@ class PagamentoController extends Controller
         }
 
         $pagamentos = $this->pagamentoRepository->findByVenda($venda->id);
+
+        $transformed = $this->pagamentoTransformer->transformCollection($pagamentos);
+
+        return $this->responseJson(['payments' => $transformed]);
+    }
+
+    public function getPaymentsByReserva(Request $request, string $reservaUuid)
+    {
+        $this->checkPermission('payments.view');
+
+        $reserva = $this->reservaRepository->findByUuid($reservaUuid);
+
+        if (!$reserva) {
+            return $this->responseJson(['error' => 'Reserva não encontrada'], 404);
+        }
+
+        $pagamentos = $this->pagamentoRepository->findByReserva($reserva->id);
 
         $transformed = $this->pagamentoTransformer->transformCollection($pagamentos);
 
