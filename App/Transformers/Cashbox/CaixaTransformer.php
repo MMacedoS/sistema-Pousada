@@ -8,6 +8,9 @@ use App\Repositories\Entities\User\UsuarioRepository;
 
 class CaixaTransformer
 {
+    private const TYPE_INPUT = 'entrada';
+    private const TYPE_OUTPUT = 'saida';
+    private const TYPE_BLOOD = 'sangria';
 
     public function transform(Caixa $caixa)
     {
@@ -29,9 +32,9 @@ class CaixaTransformer
             'current_balance' => $caixa->current_balance ?? 0,
             'final_amount' => $caixa->final_amount ?? 0,
             'difference' => $caixa->difference ?? 0,
-            'total_input' => $this->releaseTotalTypeTransactions($caixa->id, 'entrada'),
-            'total_output' => $this->releaseTotalTypeTransactions($caixa->id, 'saida'),
-            'total_bleed_box' => $this->releaseTotalTypeTransactions($caixa->id, 'sangria'),
+            'total_input' => $this->releaseTotalTypeTransactions($caixa->id, self::TYPE_INPUT),
+            'total_output' => $this->releaseTotalTypeTransactions($caixa->id, self::TYPE_OUTPUT),
+            'total_bleed_box' => $this->releaseTotalTypeTransactions($caixa->id, self::TYPE_BLOOD),
             'status' => $caixa->status,
             'obs' => $caixa->obs ?? null
         ];
