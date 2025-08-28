@@ -6,7 +6,7 @@ use App\Models\Payment\Pagamento;
 
 class PagamentoTransformer
 {
-    public function transform($pagamento)
+    public function transform(Pagamento $pagamento)
     {
         return [
             'id' => $pagamento->uuid ?? null,
@@ -25,8 +25,8 @@ class PagamentoTransformer
         ];
     }
 
-    public function transformCollection(array $pagamentos)
+    public function transformCollection(array $data): array
     {
-        return array_map([$this, 'transform'], $pagamentos);
+        return array_map(fn($item) => $this->transform($item), $data);
     }
 }

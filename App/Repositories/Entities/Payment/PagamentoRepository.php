@@ -6,6 +6,7 @@ use App\Config\Database;
 use App\Config\SingletonInstance;
 use App\Models\Payment\Pagamento;
 use App\Repositories\Contracts\Payment\IPagamentoRepository;
+use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 use PDO;
 
@@ -14,8 +15,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
     private const CLASS_NAME = Pagamento::class;
     private const TABLE = 'pagamentos';
 
-    protected $conn;
-    protected $model;
+    use FindTrait;
 
     public function __construct()
     {
@@ -35,7 +35,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
 
     public function all(array $params = [])
     {
-        $sql = "SELECT p.*, v.name as venda_nome, u.name as usuario_nome 
+        $sql = "SELECT p.*
                 FROM " . self::TABLE . " p 
                 LEFT JOIN vendas v ON p.id_venda = v.id 
                 LEFT JOIN usuarios u ON p.id_usuario = u.id 
@@ -68,7 +68,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($filters);
 
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     public function create(array $data)
@@ -97,36 +97,6 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao criar pagamento: " . $e->getMessage());
             throw new \Exception("Erro ao criar pagamento");
-        }
-    }
-
-    public function findById(int $id)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':id' => $id]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar pagamento por ID: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function findByUuid(string $uuid)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE uuid = :uuid";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':uuid' => $uuid]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar pagamento por UUID: " . $e->getMessage());
-            return null;
         }
     }
 
@@ -192,7 +162,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':venda_id' => $vendaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por venda: " . $e->getMessage());
             return [];
@@ -206,7 +176,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':reserva_id' => $reservaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por reserva: " . $e->getMessage());
             return [];
@@ -220,7 +190,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':caixa_id' => $caixaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por caixa: " . $e->getMessage());
             return [];
@@ -241,7 +211,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
                 ':end_date' => $endDate
             ]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por período: " . $e->getMessage());
             return [];

@@ -5,6 +5,7 @@ namespace App\Config;
 use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
+use App\Repositories\Contracts\Consumption\IConsumoRepository;
 use App\Repositories\Contracts\Customer\IClienteRepository;
 use App\Repositories\Contracts\Daily\IDiariaRepository;
 use App\Repositories\Contracts\File\IArquivoRepository;
@@ -22,6 +23,7 @@ use App\Repositories\Contracts\User\IUsuarioRepository;
 use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Cashbox\CaixaRepository;
 use App\Repositories\Entities\Cashbox\TransacaoCaixaRepository;
+use App\Repositories\Entities\Consumption\ConsumoRepository;
 use App\Repositories\Entities\Customer\ClienteRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\File\ArquivoRepository;
@@ -137,6 +139,11 @@ class AppServiceProvider
         $this->container->set(
             IDiariaRepository::class,
             new DiariaRepository()
+        );
+
+        $this->container->set(
+            IConsumoRepository::class,
+            new ConsumoRepository()
         );
     }
 }

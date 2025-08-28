@@ -4,6 +4,7 @@ namespace App\Transformers\Reservation;
 
 use App\Models\Reservation\Reserva;
 use App\Repositories\Entities\Apartments\ApartamentoRepository;
+use App\Repositories\Entities\Consumption\ConsumoRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
@@ -25,6 +26,7 @@ class ReservaTransformer
             'situation' => $data->situation ?? null,
             'amount' => $data->amount ?? null,
             'estimated_value' => $this->prepareTotalPerDiems($data->id) ?? null,
+            'consumption_value' => $this->prepareTotalConsumptions($data->id) ?? null,
             'paid_amount' => $this->preparePaidAmount($data->id) ?? null,
             'type' => $data->type ?? null,
             'obs' => $data->obs ?? null,
@@ -71,5 +73,11 @@ class ReservaTransformer
         $customer = $reservaHospedeRepository->findByReservaId($id);
         $reservaHospedeTransformer = new ReservaHospedeTransformer();
         return $reservaHospedeTransformer->transformCustomer($customer);
+    }
+
+    private function prepareTotalConsumptions($id)
+    {
+        $consumoRepository = ConsumoRepository::getInstance();
+        return $consumoRepository->totalConsumptionsByReservaId($id);
     }
 }

@@ -2,9 +2,11 @@
 
 namespace App\Transformers\Diaries;
 
+use App\Models\Daily\Diaria;
+
 class DiariaTransformer
 {
-    public function transform($diaria)
+    public function transform(Diaria $diaria)
     {
         return [
             'id' => $diaria->uuid,

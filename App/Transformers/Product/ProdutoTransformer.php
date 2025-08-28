@@ -10,6 +10,7 @@ class ProdutoTransformer
     {
         return [
             'id' => $produto->uuid ?? null,
+            'code' => $produto->id ?? null,
             'name' => $produto->name ?? null,
             'description' => $produto->description ?? null,
             'price' => $produto->price ?? null,

@@ -199,7 +199,6 @@ class ApartamentoController extends Controller
 
     public function accommodationWithAllApartments(Request $request)
     {
-        LoggerHelper::logInfo("Fetching all apartments");
         $this->checkPermission('apartments.view');
 
         $apartamentos = $this->apartamentoRepository->all(['active' => 1]);

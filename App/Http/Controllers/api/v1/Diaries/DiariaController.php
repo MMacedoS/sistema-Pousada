@@ -86,8 +86,8 @@ class DiariaController extends Controller
             ], 422);
         }
 
-        $data['id_reserva'] = $reserva->id;
-        $data['id_usuario'] = $this->authUserByApi();
+        $data['id_reserva'] = (int)$reserva->id;
+        $data['id_usuario'] = (int)$this->authUserByApi();
 
         $perDiem = $this->diariaRepository->create($data);
 
