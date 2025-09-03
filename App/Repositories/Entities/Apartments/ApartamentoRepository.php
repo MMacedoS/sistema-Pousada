@@ -246,4 +246,26 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
 
         return $this->findById($id);
     }
+
+    public function updateStatus(int $id, string $status)
+    {
+        if (is_null($id)) {
+            return null;
+        }
+
+        $apartment = $this->findById($id);
+
+        if (is_null($apartment)) {
+            return null;
+        }
+
+        $stmt = $this->conn->prepare("UPDATE apartamentos SET situation = :situation WHERE id = :id");
+
+        $stmt->execute([
+            ':id' => $id,
+            ':situation' => $status
+        ]);
+
+        return $this->findById($id);
+    }
 }

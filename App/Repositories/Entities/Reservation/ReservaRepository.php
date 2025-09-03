@@ -6,6 +6,7 @@ use App\Config\Database;
 use App\Config\SingletonInstance;
 use App\Models\Reservation\Reserva;
 use App\Repositories\Contracts\Reservation\IReservaRepository;
+use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
 use App\Repositories\Traits\FindTrait;
@@ -17,6 +18,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private const TABLE = "reservas";
     private $reservaHospedeRepository;
     private $diariaRepository;
+    private $apartamentoRepository;
 
     use FindTrait;
 
@@ -26,6 +28,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $this->conn = Database::getInstance()->getConnection();
         $this->reservaHospedeRepository = ReservaHospedeRepository::getInstance();
         $this->diariaRepository = DiariaRepository::getInstance();
+        $this->apartamentoRepository = ApartamentoRepository::getInstance();
     }
 
     public function all(array $params = [])
@@ -324,9 +327,9 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
 
-    public function findFirstByApartmentId(string $apartmentId)
+    public function findFirstByApartmentId(int $apartmentId)
     {
-        $today = date('Y-m-d');
+        $today = date('Y-m-d 00:00:00');
 
         $sql = "SELECT *
             FROM reservas
@@ -335,7 +338,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                 AND is_deleted = 0
                 AND (
                     (situation IN ('Reservada', 'Confirmada')
-                    AND :today BETWEEN dt_checkin AND dt_checkout)
+                    AND :today BETWEEN DATE(dt_checkin) AND DATE(dt_checkout))
                     OR situation = 'Hospedada'
                 )
             LIMIT 1
@@ -357,14 +360,30 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         if (is_null($reserva)) return null;
         if ($reserva->situation !== 'Reservada' && $reserva->situation !== 'Confirmada') return null;
 
-        $stmt = $this->conn->prepare(
-            "UPDATE reservas SET situation = 'Hospedada', id_usuario = :id_usuario WHERE id = :id"
-        );
+        try {
+            $this->conn->beginTransaction();
 
-        $ok = $stmt->execute([':id' => $reserva->id, ':id_usuario' => (int)$userId]);
+            $stmt = $this->conn->prepare("UPDATE reservas SET situation = 'Hospedada', id_usuario = :id_usuario WHERE id = :id");
+            $ok = $stmt->execute([':id_usuario' => $userId, ':id' => $reserva->id]);
+            if (!$ok) {
+                $this->conn->rollBack();
+                return null;
+            }
 
-        $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+            $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, 'Ocupado');
+            if (!$apartmentUpdated) {
+                $this->conn->rollBack();
+                return null;
+            }
 
-        return $ok ? $this->findById($reserva->id) : null;
+            $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+
+            $this->conn->commit();
+            return $this->findById($reserva->id);
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Error during check-in process: " . $e->getMessage());
+            $this->conn->rollBack();
+            return null;
+        }
     }
 }

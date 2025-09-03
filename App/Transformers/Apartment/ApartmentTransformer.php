@@ -44,7 +44,7 @@ class ApartmentTransformer
     {
         $transformed = $this->transform($apartment);
         $reservationRepository = ReservaRepository::getInstance();
-        $reservation = $reservationRepository->findFirstByApartmentId($apartment->id);
+        $reservation = $reservationRepository->findFirstByApartmentId((int)$apartment->id);
         if (!is_null($reservation)) {
             $reservationTransformer = new ReservaTransformer();
             $reservationTransformed = $reservationTransformer->transform($reservation);

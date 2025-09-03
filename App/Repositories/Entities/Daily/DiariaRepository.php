@@ -212,8 +212,8 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
         }
 
         $createdDiarias = [];
-        $currentDate = new \DateTime($startDate);
-        $endDate = new \DateTime($endDate);
+        $currentDate = new \DateTime($startDate, new \DateTimeZone('UTC'));
+        $endDate = new \DateTime($endDate, new \DateTimeZone('UTC'));
 
         while ($currentDate < $endDate) {
             $item = [
