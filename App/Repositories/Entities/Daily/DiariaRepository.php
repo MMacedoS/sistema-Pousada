@@ -13,6 +13,8 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
 {
     private const CLASS_NAME = Diaria::class;
     private const TABLE = "diarias";
+    private const TYPE_DAILY = 'diaria';
+    private const TYPE_PACKAGE = 'pacote';
     private const STATUS_AVAILABLE = 'Disponível';
     private const STATUS_FINISHED = 'Finalizada';
     private const STATUS_CANCELED = 'Cancelada';
@@ -218,7 +220,25 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
         $currentDate = new \DateTime($startDate, new \DateTimeZone('UTC'));
         $endDate = new \DateTime($endDate, new \DateTimeZone('UTC'));
 
-        while ($currentDate < $endDate) {
+        if ($reserva->type === self::TYPE_DAILY) {
+            while ($currentDate < $endDate) {
+                $item = [
+                    'id_reserva' => $reserva->id,
+                    'dt_daily' => $currentDate->format('Y-m-d'),
+                    'amount' => $reserva->amount,
+                    'status' => self::STATUS_AVAILABLE,
+                    'id_usuario' => $reserva->id_usuario,
+                    'is_deleted' => 0
+                ];
+                $diaria = $this->create($item);
+                if ($diaria) {
+                    $createdDiarias[] = $diaria;
+                }
+                $currentDate->modify('+1 day');
+            }
+        }
+
+        if ($reserva->type === self::TYPE_PACKAGE) {
             $item = [
                 'id_reserva' => $reserva->id,
                 'dt_daily' => $currentDate->format('Y-m-d'),
@@ -231,7 +251,6 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             if ($diaria) {
                 $createdDiarias[] = $diaria;
             }
-            $currentDate->modify('+1 day');
         }
 
         return $createdDiarias;
