@@ -15,6 +15,14 @@ use App\Utils\LoggerHelper;
 class ReservaRepository extends SingletonInstance implements IReservaRepository
 {
     private const CLASS_NAME = Reserva::class;
+    private const SITUATION_CHECKED_OUT = 'Finalizada';
+    private const SITUATION_AVAILABLE = 'Disponível';
+    private const SITUATION_OCCUPIED = 'Ocupado';
+    private const SITUATION_CANCELED = 'Cancelada';
+    private const SITUATION_BOOKED = 'Reservada';
+    private const SITUATION_RESERVED = 'Reservada';
+    private const SITUATION_CONFIRMED = 'Confirmada';
+    private const SITUATION_HOSTED = 'Hospedada';
     private const TABLE = "reservas";
     private $reservaHospedeRepository;
     private $diariaRepository;
@@ -337,9 +345,9 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                 id_apartamento = :id_apartamento
                 AND is_deleted = 0
                 AND (
-                    (situation IN ('Reservada', 'Confirmada')
+                    (situation IN (:situation_reserved, :situation_confirmed)
                     AND :today BETWEEN DATE(dt_checkin) AND DATE(dt_checkout))
-                    OR situation = 'Hospedada'
+                    OR situation = :situation_hospedada
                 )
             LIMIT 1
         ";
@@ -348,6 +356,9 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $stmt->execute([
             ':id_apartamento' => $apartmentId,
             ':today'          => $today,
+            ':situation_reserved' => self::SITUATION_RESERVED,
+            ':situation_confirmed' => self::SITUATION_CONFIRMED,
+            ':situation_hospedada' => self::SITUATION_HOSTED,
         ]);
 
         $stmt->setFetchMode(\PDO::FETCH_CLASS | \PDO::FETCH_PROPS_LATE, self::CLASS_NAME);
@@ -358,19 +369,19 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     {
         $reserva = $this->findById($id);
         if (is_null($reserva)) return null;
-        if ($reserva->situation !== 'Reservada' && $reserva->situation !== 'Confirmada') return null;
+        if ($reserva->situation !== self::SITUATION_RESERVED && $reserva->situation !== self::SITUATION_CONFIRMED) return null;
 
         try {
             $this->conn->beginTransaction();
 
-            $stmt = $this->conn->prepare("UPDATE reservas SET situation = 'Hospedada', id_usuario = :id_usuario WHERE id = :id");
-            $ok = $stmt->execute([':id_usuario' => $userId, ':id' => $reserva->id]);
+            $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation, id_usuario = :id_usuario WHERE id = :id");
+            $ok = $stmt->execute([':situation' => self::SITUATION_HOSTED, ':id_usuario' => $userId, ':id' => $reserva->id]);
             if (!$ok) {
                 $this->conn->rollBack();
                 return null;
             }
 
-            $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, 'Ocupado');
+            $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, self::SITUATION_OCCUPIED);
             if (!$apartmentUpdated) {
                 $this->conn->rollBack();
                 return null;
@@ -382,6 +393,39 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             return $this->findById($reserva->id);
         } catch (\Exception $e) {
             LoggerHelper::logError("Error during check-in process: " . $e->getMessage());
+            $this->conn->rollBack();
+            return null;
+        }
+    }
+
+    public function checkout(string $id)
+    {
+        $reserva = $this->findById($id);
+        if (is_null($reserva)) return null;
+        if ($reserva->situation !== self::SITUATION_HOSTED) return null;
+
+        try {
+            $this->conn->beginTransaction();
+
+            $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation WHERE id = :id");
+            $ok = $stmt->execute([':situation' => self::SITUATION_CHECKED_OUT, ':id' => $reserva->id]);
+            if (!$ok) {
+                $this->conn->rollBack();
+                return null;
+            }
+
+            $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, self::SITUATION_AVAILABLE);
+            if (!$apartmentUpdated) {
+                $this->conn->rollBack();
+                return null;
+            }
+
+            $this->diariaRepository->updateStatusByReservaId($reserva->id, self::SITUATION_CHECKED_OUT);
+
+            $this->conn->commit();
+            return $this->findById($reserva->id);
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Error during check-out process: " . $e->getMessage());
             $this->conn->rollBack();
             return null;
         }

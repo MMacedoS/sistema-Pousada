@@ -13,6 +13,9 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
 {
     private const CLASS_NAME = Diaria::class;
     private const TABLE = "diarias";
+    private const STATUS_AVAILABLE = 'Disponível';
+    private const STATUS_FINISHED = 'Finalizada';
+    private const STATUS_CANCELED = 'Cancelada';
 
     use FindTrait;
 
@@ -220,7 +223,7 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
                 'id_reserva' => $reserva->id,
                 'dt_daily' => $currentDate->format('Y-m-d'),
                 'amount' => $reserva->amount,
-                'status' => 'Disponível',
+                'status' => self::STATUS_AVAILABLE,
                 'id_usuario' => $reserva->id_usuario,
                 'is_deleted' => 0
             ];
@@ -232,5 +235,27 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
         }
 
         return $createdDiarias;
+    }
+
+    public function updateStatusByReservaId(int $reservaId, string $status)
+    {
+        if ($reservaId <= 0 || empty($status)) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->conn->prepare(
+                "UPDATE " . self::TABLE . " SET status = :status WHERE id_reserva = :id"
+            );
+            $stmt->execute([':status' => $status, ':id' => $reservaId]);
+
+            if ($stmt->rowCount() > 0) {
+                return true;
+            }
+            return false;
+        } catch (\Throwable $th) {
+            //throw $th;
+            return false;
+        }
     }
 }
