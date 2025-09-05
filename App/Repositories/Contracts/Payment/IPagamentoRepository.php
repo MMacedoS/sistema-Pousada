@@ -27,4 +27,6 @@ interface IPagamentoRepository
     public function getTotalByType(string $type);
 
     public function cancelPayment(int $id);
+
+    public function getRevenueByPeriod($startDate, $endDate);
 }

@@ -14,6 +14,10 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
 {
     private const CLASS_NAME = Pagamento::class;
     private const TABLE = 'pagamentos';
+    private const PAGO = 1;
+    private const NAO_PAGO = 0;
+    private const IS_NOT_DELETED = 0;
+    private const IS_DELETED = 1;
 
     use FindTrait;
 
@@ -264,8 +268,55 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
 
             return $result['paid_amount'] !== null ? (float)$result['paid_amount'] : 0.0;
         } catch (\Throwable $th) {
-            //throw $th;
             return 0.0;
         }
+    }
+
+    public function getRevenueByPeriod($start, $end)
+    {
+        $start = $start ?? date('Y-m-d');
+        $end = $end ?? date('Y-m-d');
+
+        $stmt = $this->conn->prepare(
+            "SELECT 
+                dt_payment as date, 
+                type_payment, 
+                SUM(payment_amount) as revenue
+             FROM pagamentos
+             WHERE dt_payment BETWEEN :start AND :end
+               AND status = :status
+               AND is_deleted = :is_deleted
+             GROUP BY dt_payment, type_payment
+             ORDER BY dt_payment ASC"
+        );
+        $stmt->execute([
+            ':start' => $start,
+            ':end' => $end,
+            ':status' => self::PAGO,
+            ':is_deleted' => self::IS_NOT_DELETED
+        ]);
+        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $response = [];
+        foreach ($result as $row) {
+            $date = $row['date'];
+            $type = $row['type_payment'];
+            $revenue = (float)$row['revenue'];
+
+            if (!isset($response[$date])) {
+                $response[$date] = [];
+            }
+            $response[$date][$type] = $revenue;
+        }
+
+        $formatted = [];
+        foreach ($response as $date => $types) {
+            $formatted[] = [
+                'date' => $date,
+                'types' => $types
+            ];
+        }
+
+        return $formatted;
     }
 }

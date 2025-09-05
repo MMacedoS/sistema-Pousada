@@ -17,6 +17,7 @@ class Reserva
     public string $situation;
     public float $amount;
     public string $type;
+    public ?int $guest;
     public ?int $is_deleted;
     public ?string $obs;
     public ?string $created_at;

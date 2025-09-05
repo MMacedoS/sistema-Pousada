@@ -11,6 +11,7 @@ use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
+use Monolog\Logger;
 
 class ReservaRepository extends SingletonInstance implements IReservaRepository
 {
@@ -24,6 +25,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private const SITUATION_CONFIRMED = 'Confirmada';
     private const SITUATION_HOSTED = 'Hospedada';
     private const TABLE = "reservas";
+    private const IS_NOT_DELETED = 0;
     private $reservaHospedeRepository;
     private $diariaRepository;
     private $apartamentoRepository;
@@ -64,7 +66,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
 
         if (isset($params['start_date']) && isset($params['end_date'])) {
-            $conditions[] = 'r.dt_checkin >= :start_date AND r.dt_checkout <= :end_date';
+            $conditions[] = 'r.dt_checkin >= :start_date OR r.dt_checkout <= :end_date';
             $bindings[':start_date'] = $params['start_date'];
             $bindings[':end_date'] = $params['end_date'];
         }
@@ -179,6 +181,30 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         ]);
 
         if (!$ok) return null;
+
+        if (isset($data['customer_id']) && !empty($data['customer_id'])) {
+            $reserva = $this->findById($id);
+            $hospedeData = [
+                'id_reserva' => $reserva->id,
+                'id_hospede' => $data['customer_id'],
+                'is_primary' => 1,
+            ];
+            $reservaHospede = $this->reservaHospedeRepository->update($hospedeData);
+            if (is_null($reservaHospede)) return null;
+        }
+
+        if ($reserva->situation === self::SITUATION_CANCELED) {
+            $this->diariaRepository->updateStatusByReservaId($reserva->id, self::SITUATION_CANCELED);
+        }
+
+        if ($reserva->situation === self::SITUATION_CHECKED_OUT) {
+            $this->diariaRepository->updateStatusByReservaId($reserva->id, self::SITUATION_CHECKED_OUT);
+        }
+
+        if ($reserva->situation === self::SITUATION_HOSTED) {
+            $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+        }
+
         return $this->findById($id);
     }
 
@@ -429,5 +455,57 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             $this->conn->rollBack();
             return null;
         }
+    }
+
+    public function getCheckinToday(string $date): array
+    {
+        $sql = "SELECT *
+                FROM reservas
+                WHERE dt_checkin = :dt_checkin
+                AND is_deleted = :is_deleted";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':dt_checkin' => $date,
+            ':is_deleted' => self::IS_NOT_DELETED
+        ]);
+
+
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function getCheckoutTodayOrLate(string $date): array
+    {
+        $sql = "SELECT *
+                FROM reservas
+                WHERE dt_checkout <= :dt_checkout
+                AND situation = :situation
+                AND is_deleted = :is_deleted";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':dt_checkout' => $date,
+            ':situation' => self::SITUATION_HOSTED,
+            ':is_deleted' => self::IS_NOT_DELETED
+        ]);
+
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function getCurrentGuestsCount(): int
+    {
+        $sql = "SELECT COUNT(*) as guest_count
+                FROM reservas
+                WHERE situation = :situation
+                AND is_deleted = :is_deleted";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':situation' => self::SITUATION_HOSTED,
+            ':is_deleted' => self::IS_NOT_DELETED
+        ]);
+
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result ? (int)$result['guest_count'] : 0;
     }
 }

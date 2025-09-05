@@ -8,6 +8,7 @@ use App\Models\Daily\Diaria;
 use App\Models\Reservation\Reserva;
 use App\Repositories\Contracts\Daily\IDiariaRepository;
 use App\Repositories\Traits\FindTrait;
+use App\Utils\LoggerHelper;
 
 class DiariaRepository extends SingletonInstance implements IDiariaRepository
 {
@@ -114,6 +115,7 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             return null;
         } catch (\Throwable $th) {
             //throw $th;
+            LoggerHelper::logError("Error creating daily record: " . $th->getMessage());
             return null;
         }
     }
@@ -231,7 +233,7 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
                     'is_deleted' => 0
                 ];
                 $diaria = $this->create($item);
-                if ($diaria) {
+                if (is_null($diaria)) {
                     $createdDiarias[] = $diaria;
                 }
                 $currentDate->modify('+1 day');

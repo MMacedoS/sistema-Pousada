@@ -95,7 +95,7 @@ class ReservaHospedeRepository extends SingletonInstance implements IReservaHosp
         return null;
     }
 
-    public function update(array $data, int $id_reserva, int $id_hospede)
+    public function update(array $data)
     {
         if (empty($data)) return null;
 
@@ -107,12 +107,12 @@ class ReservaHospedeRepository extends SingletonInstance implements IReservaHosp
             WHERE id_reserva = :id_reserva AND id_hospede = :id_hospede"
         );
 
-        $stmt->bindParam(':id_reserva', $id_reserva, \PDO::PARAM_INT);
-        $stmt->bindParam(':id_hospede', $id_hospede, \PDO::PARAM_INT);
+        $stmt->bindParam(':id_reserva', $data['id_reserva'], \PDO::PARAM_INT);
+        $stmt->bindParam(':id_hospede', $data['id_hospede'], \PDO::PARAM_INT);
         $stmt->bindParam(':is_primary', $data['is_primary'], \PDO::PARAM_INT);
 
         if ($stmt->execute()) {
-            return $this->model->find($id_reserva, $id_hospede);
+            return $this->findByHospedeId($data['id_hospede']);
         }
 
         return null;
