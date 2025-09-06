@@ -35,4 +35,6 @@ interface IReservaRepository
     public function getCheckoutTodayOrLate(string $date): array;
 
     public function getCurrentGuestsCount(): int;
+
+    public function checkOut(string $uuid, string $userId);
 }

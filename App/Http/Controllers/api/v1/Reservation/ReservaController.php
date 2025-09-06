@@ -118,6 +118,7 @@ class ReservaController extends Controller
                     'amount' => $data['amount'],
                     'type' => $data['type'],
                     'obs' => $data['obs'] ?? null,
+                    'guest' => $data['guest'] ?? 1,
                 ];
 
                 $reserva = $this->reservaRepository->create($reservationData);
@@ -401,6 +402,36 @@ class ReservaController extends Controller
 
         return $this->responseJson([
             'message' => 'Check-in realizado com sucesso',
+            'reservation' => $this->reservaTransformer->transform($updatedReserva),
+        ]);
+    }
+
+    public function checkOut(Request $request, string $uuid)
+    {
+        $this->checkPermission('reservations.checkout');
+
+        $reserva = $this->reservaRepository->findByUuid($uuid);
+
+        if (is_null($reserva)) {
+            return $this->responseJson("Reserva não encontrada", 422);
+        }
+
+        if ($reserva->situation === 'Finalizada') {
+            return $this->responseJson("Reserva já está finalizada", 422);
+        }
+
+        if ($reserva->situation !== 'Hospedada') {
+            return $this->responseJson("Só é possível fazer check-out de reservas hospedadas", 422);
+        }
+
+        $updatedReserva = $this->reservaRepository->checkOut($reserva->id, $this->authUserByApi());
+
+        if (is_null($updatedReserva)) {
+            return $this->responseJson("Falha ao realizar check-out", 422);
+        }
+
+        return $this->responseJson([
+            'message' => 'Check-out realizado com sucesso',
             'reservation' => $this->reservaTransformer->transform($updatedReserva),
         ]);
     }

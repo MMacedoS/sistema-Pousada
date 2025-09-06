@@ -25,6 +25,7 @@ class ReservaTransformer
             'checkout' => $data->dt_checkout ?? null,
             'situation' => $data->situation ?? null,
             'amount' => $data->amount ?? null,
+            'guests' => $data->guest ?? null,
             'estimated_value' => $this->prepareTotalPerDiems($data->id) ?? null,
             'consumption_value' => $this->prepareTotalConsumptions($data->id) ?? null,
             'paid_amount' => $this->preparePaidAmount($data->id) ?? null,

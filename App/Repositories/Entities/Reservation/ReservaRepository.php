@@ -26,6 +26,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private const SITUATION_HOSTED = 'Hospedada';
     private const TABLE = "reservas";
     private const IS_NOT_DELETED = 0;
+    private const IS_DELETED = 1;
     private $reservaHospedeRepository;
     private $diariaRepository;
     private $apartamentoRepository;
@@ -66,18 +67,23 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
 
         if (isset($params['start_date']) && isset($params['end_date'])) {
-            $conditions[] = 'r.dt_checkin >= :start_date OR r.dt_checkout <= :end_date';
+            $conditions[] = ' (r.dt_checkin >= :start_date  OR  r.dt_checkout <= :end_date)';
             $bindings[':start_date'] = $params['start_date'];
             $bindings[':end_date'] = $params['end_date'];
         }
 
         if (isset($params['search'])) {
-            $conditions[] = '(pf.name LIKE :search OR a.name LIKE :search OR u.name LIKE :search OR r.dt_checkin LIKE :search OR r.dt_checkout LIKE :search OR r.situation LIKE :search OR r.amount LIKE :search OR r.type LIKE :search OR r.obs LIKE :search)';
+            $conditions[] = '(
+                pf.name LIKE :search 
+                OR a.name LIKE :search 
+                OR u.name LIKE :search 
+                OR r.amount LIKE :search 
+                OR r.obs LIKE :search)';
             $bindings[':search'] = '%' . $params['search'] . '%';
         }
 
         $conditions[] = 'r.is_deleted = :is_deleted';
-        $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
+        $bindings[':is_deleted'] = $params['is_deleted'] ?? self::IS_NOT_DELETED;
 
         if (!empty($conditions)) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -105,6 +111,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                     dt_checkin = :dt_checkin,
                     dt_checkout = :dt_checkout,
                     situation = :situation,
+                    guest = :guest,
                     amount = :amount,
                     type = :type,
                     obs = :obs"
@@ -116,6 +123,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                 ':dt_checkin' => $reserva->dt_checkin,
                 ':dt_checkout' => $reserva->dt_checkout,
                 ':situation' => $reserva->situation,
+                ':guest' => $reserva->guest,
                 ':amount' => $reserva->amount,
                 ':type' => $reserva->type,
                 ':obs' => $reserva->obs,
@@ -162,6 +170,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
                 dt_checkin = :dt_checkin,
                 dt_checkout = :dt_checkout,
                 situation = :situation,
+                guest = :guest,
                 amount = :amount,
                 type = :type,
                 obs = :obs
@@ -174,6 +183,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             ':dt_checkin' => $reserva->dt_checkin,
             ':dt_checkout' => $reserva->dt_checkout,
             ':situation' => $reserva->situation,
+            ':guest' => $reserva->guest,
             ':amount' => $reserva->amount,
             ':type' => $reserva->type,
             ':obs' => $reserva->obs,
@@ -213,8 +223,8 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $reserva = $this->findById($id);
         if (is_null($reserva)) return null;
 
-        $stmt = $this->conn->prepare("UPDATE reservas SET is_deleted = 1 WHERE id = :id");
-        return $stmt->execute([':id' => $id]) ? $reserva : null;
+        $stmt = $this->conn->prepare("UPDATE reservas SET is_deleted = :is_deleted, situation = :situation WHERE id = :id");
+        return $stmt->execute([':id' => $id, ':is_deleted' => self::IS_DELETED, ':situation' => self::SITUATION_CANCELED]) ? $reserva : null;
     }
 
     public function availableApartments(array $params = [])
@@ -424,7 +434,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
     }
 
-    public function checkout(string $id)
+    public function checkout(string $id, string $userId)
     {
         $reserva = $this->findById($id);
         if (is_null($reserva)) return null;
@@ -433,8 +443,8 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         try {
             $this->conn->beginTransaction();
 
-            $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation WHERE id = :id");
-            $ok = $stmt->execute([':situation' => self::SITUATION_CHECKED_OUT, ':id' => $reserva->id]);
+            $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation, id_usuario = :id_usuario WHERE id = :id");
+            $ok = $stmt->execute([':situation' => self::SITUATION_CHECKED_OUT, ':id_usuario' => $userId, ':id' => $reserva->id]);
             if (!$ok) {
                 $this->conn->rollBack();
                 return null;
@@ -461,7 +471,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     {
         $sql = "SELECT *
                 FROM reservas
-                WHERE dt_checkin = :dt_checkin
+                WHERE DATE(dt_checkin) = DATE(:dt_checkin)
                 AND is_deleted = :is_deleted";
 
         $stmt = $this->conn->prepare($sql);
@@ -478,7 +488,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     {
         $sql = "SELECT *
                 FROM reservas
-                WHERE dt_checkout <= :dt_checkout
+                WHERE DATE(dt_checkout) <= DATE(:dt_checkout)
                 AND situation = :situation
                 AND is_deleted = :is_deleted";
 
@@ -494,7 +504,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
 
     public function getCurrentGuestsCount(): int
     {
-        $sql = "SELECT COUNT(*) as guest_count
+        $sql = "SELECT sum(guest) as guest_count
                 FROM reservas
                 WHERE situation = :situation
                 AND is_deleted = :is_deleted";

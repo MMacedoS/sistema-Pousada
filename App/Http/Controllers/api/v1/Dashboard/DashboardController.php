@@ -4,11 +4,14 @@ namespace App\Http\Controllers\api\v1\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Request\Request;
+use App\Models\Reservation\Reserva;
 use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Repositories\Contracts\Daily\IDiariaRepository;
 use App\Repositories\Contracts\Payment\IPagamentoRepository;
 use App\Repositories\Contracts\Reservation\IReservaRepository;
+use App\Transformers\Reservation\ReservaTransformer;
 use App\Utils\LoggerHelper;
+use Monolog\Logger;
 
 class DashboardController extends Controller
 {
@@ -22,12 +25,14 @@ class DashboardController extends Controller
         IApartamentoRepository $apartmentRepository,
         IReservaRepository $reservaRepository,
         IPagamentoRepository $pagamentoRepository,
-        IDiariaRepository $diariaRepository
+        IDiariaRepository $diariaRepository,
+        ReservaTransformer $reservaTransformer
     ) {
         $this->apartmentRepository = $apartmentRepository;
         $this->reservaRepository = $reservaRepository;
         $this->pagamentoRepository = $pagamentoRepository;
         $this->diariaRepository = $diariaRepository;
+        $this->reservaTransformer = $reservaTransformer;
     }
 
     public function apartmentsStatus()
