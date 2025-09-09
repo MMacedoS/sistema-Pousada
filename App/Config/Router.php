@@ -7,7 +7,6 @@ use App\Http\CorsHelper;
 CorsHelper::handle([
     'https://localhost:5173',
     'https://sistemareserva.localhost:5173',
-    'https://app.encantodasaguasquentes.com.br',
 ]);
 
 use App\Http\Request\Request;
