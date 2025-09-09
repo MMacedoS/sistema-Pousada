@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Models\Permission;
+
 class PermissaoAsUsuario
 {
 

@@ -17,7 +17,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
 {
     private const CLASS_NAME = Reserva::class;
     private const SITUATION_CHECKED_OUT = 'Finalizada';
-    private const SITUATION_AVAILABLE = 'Disponível';
+    private const SITUATION_AVAILABLE = 'Disponivel';
     private const SITUATION_OCCUPIED = 'Ocupado';
     private const SITUATION_CANCELED = 'Cancelada';
     private const SITUATION_BOOKED = 'Reservada';
@@ -230,20 +230,27 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     public function availableApartments(array $params = [])
     {
         $sql = "SELECT a.*
-                FROM apartamentos a
-                LEFT JOIN reservas r 
-                ON a.id = r.id_apartamento
+        FROM apartamentos a
+        LEFT JOIN reservas r 
+            ON a.id = r.id_apartamento
+            AND (
+                DATE(r.dt_checkin) <= DATE(:end_date)
+                AND DATE(r.dt_checkout) >= DATE(:start_date)
                 AND (
-                    r.dt_checkin < :end_date
-                    AND r.dt_checkout > :start_date
-                    AND r.situation IN ('Reservada', 'Confirmada', 'Hospedada')
-                    AND r.is_deleted = 0
+                    (r.situation IN (:reserved, :confirmed) AND r.is_deleted = :is_deleted)
+                    OR
+                    (r.situation = :hosted AND r.is_deleted = :is_deleted AND DATE(r.dt_checkout) > DATE(:start_date))
                 )
-                WHERE r.id_apartamento IS NULL";
+            )
+        WHERE r.id_apartamento IS NULL";
 
         $bindings = [
             ':start_date' => $params['check_in'],
             ':end_date'   => $params['check_out'],
+            ':reserved'   => self::SITUATION_RESERVED,
+            ':confirmed'  => self::SITUATION_CONFIRMED,
+            ':hosted'     => self::SITUATION_HOSTED,
+            ':is_deleted' => self::IS_NOT_DELETED,
         ];
 
         $conditions = [];
@@ -472,12 +479,15 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $sql = "SELECT *
                 FROM reservas
                 WHERE DATE(dt_checkin) = DATE(:dt_checkin)
+                AND situation IN (:situation_reserved, :situation_confirmed)
                 AND is_deleted = :is_deleted";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([
             ':dt_checkin' => $date,
-            ':is_deleted' => self::IS_NOT_DELETED
+            ':is_deleted' => self::IS_NOT_DELETED,
+            ':situation_reserved' => self::SITUATION_RESERVED,
+            ':situation_confirmed' => self::SITUATION_CONFIRMED
         ]);
 
 

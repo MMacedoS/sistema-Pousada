@@ -34,7 +34,7 @@ class Reserva
         $reserva->id_usuario = $data['id_usuario'] ?? null;
         $reserva->dt_checkin = $data['dt_checkin'];
         $reserva->dt_checkout = $data['dt_checkout'];
-        $reserva->situation = $data['situation'] ?? 'Reservada';
+        $reserva->situation = $data['status'] ?? 'Reservada';
         $reserva->amount = (float)($data['amount'] ?? 0.0);
         $reserva->guest = $data['guests'] ?? 1;
         $reserva->type = $data['type'];
@@ -49,7 +49,7 @@ class Reserva
         $reserva->id_usuario = $data['id_usuario'] ?? $reserva->id_usuario;
         $reserva->dt_checkin = $data['dt_checkin'] ?? $reserva->dt_checkin;
         $reserva->dt_checkout = $data['dt_checkout'] ?? $reserva->dt_checkout;
-        $reserva->situation = $data['situation'] ?? $reserva->situation;
+        $reserva->situation = $data['status'] ?? $reserva->situation;
         $reserva->amount = isset($data['amount']) ? (float)$data['amount'] : $reserva->amount;
         $reserva->guest = $data['guests'] ?? $reserva->guest;
         $reserva->type = $data['type'] ?? $reserva->type;
