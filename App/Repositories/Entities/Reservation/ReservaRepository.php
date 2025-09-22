@@ -9,6 +9,7 @@ use App\Repositories\Contracts\Reservation\IReservaRepository;
 use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
+use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 use Monolog\Logger;
@@ -30,6 +31,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private $reservaHospedeRepository;
     private $diariaRepository;
     private $apartamentoRepository;
+    private $pagamentoRepository;
 
     use FindTrait;
 
@@ -40,6 +42,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $this->reservaHospedeRepository = ReservaHospedeRepository::getInstance();
         $this->diariaRepository = DiariaRepository::getInstance();
         $this->apartamentoRepository = ApartamentoRepository::getInstance();
+        $this->pagamentoRepository = PagamentoRepository::getInstance();
     }
 
     public function all(array $params = [])
@@ -59,6 +62,13 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         if (isset($params['situation'])) {
             $conditions[] = 'r.situation = :situation';
             $bindings[':situation'] = $params['situation'];
+        }
+
+        if (!isset($params['situation']) || empty($params['situation'])) {
+            $conditions[] = 'r.situation IN (:situation_reserved, :situation_confirmed, :situation_hosted)';
+            $bindings[':situation_reserved'] = self::SITUATION_RESERVED;
+            $bindings[':situation_confirmed'] = self::SITUATION_CONFIRMED;
+            $bindings[':situation_hosted'] = self::SITUATION_HOSTED;
         }
 
         if (isset($params['type'])) {
@@ -222,9 +232,35 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     {
         $reserva = $this->findById($id);
         if (is_null($reserva)) return null;
+        try {
+            $this->conn->beginTransaction();
 
-        $stmt = $this->conn->prepare("UPDATE reservas SET is_deleted = :is_deleted, situation = :situation WHERE id = :id");
-        return $stmt->execute([':id' => $id, ':is_deleted' => self::IS_DELETED, ':situation' => self::SITUATION_CANCELED]) ? $reserva : null;
+            $stmt = $this->conn->prepare("UPDATE reservas SET is_deleted = :is_deleted, situation = :situation WHERE id = :id");
+            $ok = $stmt->execute([':id' => $id, ':is_deleted' => self::IS_DELETED, ':situation' => self::SITUATION_CANCELED]);
+            if (!$ok) {
+                $this->conn->rollBack();
+                return null;
+            }
+
+            $this->diariaRepository->updateStatusByReservaId($reserva->id, self::SITUATION_CANCELED);
+
+            $pagamentos = $this->pagamentoRepository->findByReserva($reserva->id);
+            foreach ($pagamentos as $pagamento) {
+                try {
+                    $this->pagamentoRepository->cancelPayment($pagamento->id);
+                } catch (\Throwable $th) {
+                    LoggerHelper::logError('Falha ao cancelar pagamento ID ' . $pagamento->id . ' da reserva ' . $reserva->id . ': ' . $th->getMessage());
+                }
+            }
+
+            $this->conn->commit();
+
+            return $this->findById($id);
+        } catch (\Exception $e) {
+            LoggerHelper::logError('Erro ao cancelar/deletar reserva ' . $id . ': ' . $e->getMessage());
+            $this->conn->rollBack();
+            return null;
+        }
     }
 
     public function availableApartments(array $params = [])
