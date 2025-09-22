@@ -490,7 +490,6 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             ':situation_confirmed' => self::SITUATION_CONFIRMED
         ]);
 
-
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 

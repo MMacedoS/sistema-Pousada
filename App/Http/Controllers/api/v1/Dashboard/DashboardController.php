@@ -48,7 +48,8 @@ class DashboardController extends Controller
 
     public function checkinToday()
     {
-        $today = date('Y-m-d');
+        $today = date('Y-m-d H:i:s');
+        LoggerHelper::logInfo($today);
         $reservas = $this->reservaRepository->getCheckinToday($today);
 
         if (empty($reservas)) {

@@ -27,6 +27,7 @@ class ReservaTransformer
             'amount' => $data->amount ?? null,
             'guests' => $data->guest ?? null,
             'estimated_value' => $this->prepareTotalPerDiems($data->id) ?? null,
+            'total_reservation_value' => $this->prepareTotalReserva($data) ?? 0,
             'consumption_value' => $this->prepareTotalConsumptions($data->id) ?? null,
             'paid_amount' => $this->preparePaidAmount($data->id) ?? null,
             'type' => $data->type ?? null,
@@ -34,6 +35,16 @@ class ReservaTransformer
             'created_at' => $data->created_at ?? null,
             'updated_at' => $data->updated_at ?? null,
         ];
+    }
+
+    private function prepareTotalReserva(Reserva $data): float
+    {
+        $countDays = (new \DateTime($data->dt_checkout))->diff(new \DateTime($data->dt_checkin))->days;
+        if ($countDays == 0) {
+            $countDays = 1; // Garantir que pelo menos um dia seja contado
+        }
+
+        return (float) ($data->amount * $countDays);
     }
 
     public function transformCollection(array $data): array

@@ -44,31 +44,31 @@ class ClienteTransformer
         return $person->name;
     }
 
-    private function prepareEmail(Cliente $cliente): string
+    private function prepareEmail(Cliente $cliente): ?string
     {
         $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
         $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
-        return $person->email;
+        return $person->email ?? null;
     }
 
     private function preparePhone(Cliente $cliente): ?string
     {
         $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
         $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
-        return $person->phone;
+        return $person->phone ?? null;
     }
 
-    private function prepareAddress(Cliente $cliente): string
+    private function prepareAddress(Cliente $cliente): ?string
     {
         $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
         $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
-        return $person->address;
+        return $person->address ?? null;
     }
 
     private function prepareBirthdate(Cliente $cliente): ?string
     {
         $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
         $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
-        return $person->birthday;
+        return $person->birthday ?? null;
     }
 }

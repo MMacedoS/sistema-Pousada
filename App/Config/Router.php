@@ -6,7 +6,9 @@ use App\Http\CorsHelper;
 
 CorsHelper::handle([
     'https://localhost:5173',
+    'https://localhost:4173',
     'https://sistemareserva.localhost:5173',
+    'https://sistemareserva.localhost:4173',
 ]);
 
 use App\Http\Request\Request;

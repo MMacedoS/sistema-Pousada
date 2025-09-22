@@ -13,7 +13,7 @@ class PessoaFisica
     public string $uuid;
     public string $name;
     public ?string $social_name;
-    public string $email;
+    public ?string $email;
     public $usuario_id;
     public ?string $address;
     public $active;
@@ -23,8 +23,8 @@ class PessoaFisica
     public ?string $phone;
     public $is_deleted;
     public ?string $gender;
-    public $created_at;
-    public $updated_at;
+    public ?string $created_at;
+    public ?string $updated_at;
 
     public function __construct() {}
 
