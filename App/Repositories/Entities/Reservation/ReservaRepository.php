@@ -60,8 +60,10 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $bindings = [];
 
         if (isset($params['situation'])) {
-            $conditions[] = 'r.situation = :situation';
-            $bindings[':situation'] = $params['situation'];
+            if ($params['situation'] !== 'all') {
+                $conditions[] = 'r.situation = :situation';
+                $bindings[':situation'] = $params['situation'];
+            }
         }
 
         if (!isset($params['situation']) || empty($params['situation'])) {
