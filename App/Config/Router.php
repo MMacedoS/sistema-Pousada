@@ -9,6 +9,7 @@ CorsHelper::handle([
     'https://localhost:4173',
     'https://sistemareserva.localhost:5173',
     'https://sistemareserva.localhost:4173',
+    'https://api.pousadarecantodospassaros.tur.br'
 ]);
 
 use App\Http\Request\Request;
