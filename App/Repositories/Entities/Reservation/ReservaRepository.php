@@ -45,6 +45,26 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $this->pagamentoRepository = PagamentoRepository::getInstance();
     }
 
+    private function getCurrentDateWithTimezone(string $format = 'Y-m-d'): string
+    {
+        $timezone = new \DateTimeZone($_ENV['APP_TIMEZONE'] ?? 'America/Sao_Paulo');
+        $dateTime = new \DateTime('now', $timezone);
+        return $dateTime->format($format);
+    }
+
+    private function ensureDateAsString($date): string
+    {
+        if (is_string($date)) {
+            return $date;
+        }
+
+        if ($date instanceof \DateTime) {
+            return $date->format('Y-m-d');
+        }
+
+        return (string) $date;
+    }
+
     public function all(array $params = [])
     {
         $sql = "
@@ -224,7 +244,10 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
 
         if ($reserva->situation === self::SITUATION_HOSTED) {
-            $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+            $checkin = $this->ensureDateAsString($reserva->dt_checkin);
+            $checkout = $this->ensureDateAsString($reserva->dt_checkout);
+
+            $this->diariaRepository->createAllByBetweenDate($reserva, $checkin, $checkout);
         }
 
         return $this->findById($id);
@@ -418,7 +441,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
 
     public function findFirstByApartmentId(int $apartmentId)
     {
-        $today = date('Y-m-d 00:00:00');
+        $today = $this->getCurrentDateWithTimezone('Y-m-d 00:00:00');
 
         $sql = "SELECT *
             FROM reservas
@@ -449,34 +472,85 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     public function checkIn(string $id, string $userId)
     {
         $reserva = $this->findById($id);
-        if (is_null($reserva)) return null;
-        if ($reserva->situation !== self::SITUATION_RESERVED && $reserva->situation !== self::SITUATION_CONFIRMED) return null;
+
+        if (!$this->isValidForCheckIn($reserva)) {
+            return null;
+        }
 
         try {
             $this->conn->beginTransaction();
 
-            $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation, id_usuario = :id_usuario WHERE id = :id");
-            $ok = $stmt->execute([':situation' => self::SITUATION_HOSTED, ':id_usuario' => $userId, ':id' => $reserva->id]);
-            if (!$ok) {
+            $updatedReservation = $this->updateReservationToHosted($reserva, $userId);
+            if (!$updatedReservation) {
                 $this->conn->rollBack();
                 return null;
             }
 
-            $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, self::SITUATION_OCCUPIED);
+            $apartmentUpdated = $this->updateApartmentStatusToOccupied($reserva->id_apartamento);
             if (!$apartmentUpdated) {
                 $this->conn->rollBack();
                 return null;
             }
 
-            $this->diariaRepository->createAllByBetweenDate($reserva, $reserva->dt_checkin, $reserva->dt_checkout);
+            $this->createDiariasIfNeeded($reserva);
 
             $this->conn->commit();
+
             return $this->findById($reserva->id);
         } catch (\Exception $e) {
-            LoggerHelper::logError("Error during check-in process: " . $e->getMessage());
+            LoggerHelper::logError("Erro durante o processo de check-in para a reserva {$reserva->id}: " . $e->getMessage());
             $this->conn->rollBack();
             return null;
         }
+    }
+
+    private function isValidForCheckIn(?Reserva $reserva): bool
+    {
+        if (is_null($reserva)) {
+            LoggerHelper::logError("Reserva não encontrada para check-in");
+            return false;
+        }
+
+        $validSituations = [self::SITUATION_RESERVED, self::SITUATION_CONFIRMED];
+        if (!in_array($reserva->situation, $validSituations)) {
+            LoggerHelper::logError("Situação de reserva inválida para check-in: {$reserva->situation}");
+            return false;
+        }
+
+        // Verifica se a data de check-in não é anterior ao dia atual
+        $today = $this->getCurrentDateWithTimezone('Y-m-d');
+        $checkinDate = $this->ensureDateAsString($reserva->dt_checkin);
+
+        if ($checkinDate < $today) {
+            LoggerHelper::logError("Data de check-in está no passado: {$checkinDate} < {$today}");
+            return false;
+        }
+
+        return true;
+    }
+
+    private function updateReservationToHosted(Reserva $reserva, string $userId): bool
+    {
+        $stmt = $this->conn->prepare("UPDATE reservas SET situation = :situation, id_usuario = :id_usuario WHERE id = :id");
+        return $stmt->execute([
+            ':situation' => self::SITUATION_HOSTED,
+            ':id_usuario' => $userId,
+            ':id' => $reserva->id
+        ]);
+    }
+
+    private function updateApartmentStatusToOccupied(int $apartmentId): bool
+    {
+        $updatedApartment = $this->apartamentoRepository->updateStatus($apartmentId, self::SITUATION_OCCUPIED);
+        return !is_null($updatedApartment);
+    }
+
+    private function createDiariasIfNeeded(Reserva $reserva): void
+    {
+        $checkin = $this->ensureDateAsString($reserva->dt_checkin);
+        $checkout = $this->ensureDateAsString($reserva->dt_checkout);
+
+        $this->diariaRepository->createAllByBetweenDate($reserva, $checkin, $checkout);
     }
 
     public function checkout(string $id, string $userId)
@@ -496,7 +570,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             }
 
             $apartmentUpdated = $this->apartamentoRepository->updateStatus($reserva->id_apartamento, self::SITUATION_AVAILABLE);
-            if (!$apartmentUpdated) {
+            if (is_null($apartmentUpdated)) {
                 $this->conn->rollBack();
                 return null;
             }
@@ -506,7 +580,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             $this->conn->commit();
             return $this->findById($reserva->id);
         } catch (\Exception $e) {
-            LoggerHelper::logError("Error during check-out process: " . $e->getMessage());
+            LoggerHelper::logError("erro durante o processo de check-out: " . $e->getMessage());
             $this->conn->rollBack();
             return null;
         }

@@ -3,6 +3,7 @@
 namespace App\Transformers\Payment;
 
 use App\Models\Payment\Pagamento;
+use App\Repositories\Entities\Sale\VendaRepository;
 
 class PagamentoTransformer
 {
@@ -14,7 +15,7 @@ class PagamentoTransformer
             'method' => $pagamento->type_payment ?? null,
             'amount' => $pagamento->payment_amount ?? null,
             'payment_date' => $pagamento->dt_payment ?? null,
-            'sale_id' => $pagamento->id_venda ?? null,
+            'sale_id' => $this->prepareSale($pagamento->id_venda) ?? null,
             "reference" => $pagamento->id_venda ? "Venda" : "Hospedagem",
             'sale_name' => $pagamento->venda_nome ?? null,
             'user_name' => $pagamento->usuario_nome ?? null,
@@ -28,5 +29,19 @@ class PagamentoTransformer
     public function transformCollection(array $data): array
     {
         return array_map(fn($item) => $this->transform($item), $data);
+    }
+
+    private function prepareSale($id)
+    {
+        if (is_null($id)) {
+            return null;
+        }
+
+        $vendaRepository = VendaRepository::getInstance();
+        $venda = $vendaRepository->findById($id);
+        if (is_null($venda)) {
+            return null;
+        }
+        return $venda->uuid ?? null;
     }
 }

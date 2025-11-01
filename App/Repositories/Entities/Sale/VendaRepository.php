@@ -15,6 +15,7 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
     private const CLASS_NAME = Venda::class;
     private const TABLE = 'vendas';
     private $itemVendaRepository;
+    private const PENDING_STATUS = 'Pendente';
 
     use FindTrait;
 
@@ -98,36 +99,6 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
         }
     }
 
-    public function findById(int $id)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':id' => $id]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar venda por ID: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function findByUuid(string $uuid)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE uuid = :uuid";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':uuid' => $uuid]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar venda por UUID: " . $e->getMessage());
-            return null;
-        }
-    }
-
     public function update(array $data, int $id)
     {
         try {
@@ -178,6 +149,20 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao deletar venda: " . $e->getMessage());
             throw new \Exception("Erro ao deletar venda");
+        }
+    }
+
+    public function findByReservaIdAndSituation(int $reservaId, string $situation)
+    {
+        try {
+            $sql = "SELECT * FROM " . self::TABLE . " WHERE id_reserva = :id AND status = :situation";
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([':id' => $reservaId, ':situation' => $situation]);
+
+            return $stmt->fetch(PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao buscar venda por ID e situação: " . $e->getMessage());
+            return null;
         }
     }
 
@@ -285,5 +270,16 @@ class VendaRepository extends SingletonInstance implements IVendaRepository
             LoggerHelper::logError("Erro ao cancelar venda: " . $e->getMessage());
             throw new \Exception("Erro ao cancelar venda");
         }
+    }
+
+    public function totalConsumptionsSalesByReservaId($reservaId)
+    {
+        $venda = $this->findByReservaIdAndSituation($reservaId, self::PENDING_STATUS);
+
+        if (!$venda || is_null($venda->id_reserva)) {
+            return 0;
+        }
+        $total = $this->itemVendaRepository->getTotalByVenda($venda->id);
+        return $total;
     }
 }

@@ -54,6 +54,9 @@ $auth = new Auth();
 
 $router->create('GET', '/', [$tokenController, 'index'], null);
 
+// Rota pública para comprovante de reserva
+$router->create('GET', '/comprovante-reserva/{uuid}', [$reservaController, 'comprovante'], null);
+
 require_once __DIR__ . '/api/v1/token/tokenRouter.php';
 require_once __DIR__ . '/api/v1/apartments/apartmentsRouter.php';
 require_once __DIR__ . '/api/v1/profile/profileRouter.php';

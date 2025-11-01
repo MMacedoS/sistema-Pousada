@@ -435,4 +435,28 @@ class ReservaController extends Controller
             'reservation' => $this->reservaTransformer->transform($updatedReserva),
         ]);
     }
+
+    public function comprovante(Request $request, string $uuid)
+    {
+        $reserva = $this->reservaRepository->findByUuid($uuid);
+
+        if (is_null($reserva)) {
+            $router = new \App\Config\Router();
+            $router->view('comprovante/404', ['message' => 'Reserva não encontrada']);
+            return;
+        }
+
+        $reservaTransformada = $this->reservaTransformer->transform($reserva);
+
+        $router = new \App\Config\Router();
+        $router->view('comprovante/comprovante', [
+            'reserva' => $reservaTransformada,
+            'empresa' => [
+                'nome' => $_ENV['COMPANY_NAME'] ?? 'Pousada Encantos das Águas Quentes',
+                'endereco' => $_ENV['COMPANY_ADDRESS'] ?? 'Av. Quinze de Novembro, Caldas do Jorro - BA, 48793-000',
+                'telefone' => $_ENV['COMPANY_PHONE'] ?? '+55 75 9 9228-7642',
+                'email' => $_ENV['COMPANY_EMAIL'] ?? 'contato@encantosdasaguasquentes.com.br'
+            ]
+        ]);
+    }
 }

@@ -5,7 +5,9 @@ namespace App\Transformers\Sale;
 use App\Models\Sale\ItemVenda;
 use App\Models\Sale\Venda;
 use App\Repositories\Entities\Payment\PagamentoRepository;
+use App\Repositories\Entities\Reservation\ReservaRepository;
 use App\Repositories\Entities\Sale\ItemVendaRepository;
+use App\Transformers\Reservation\ReservaTransformer;
 
 class VendaTransformer
 {
@@ -16,11 +18,11 @@ class VendaTransformer
             'name' => $venda->name ?? null,
             'description' => $venda->description ?? null,
             'sale_date' => $venda->dt_sale ?? null,
-            'current_amount' => $this->calculateAmountItems($venda->id),
+            'current_amount' => $this->calculateAmountItems($venda->id) + ($venda->amount_sale ?? 0),
             'status' => $venda->status ?? null,
             'payment_status' => $this->preparePaymentStatus($venda->id),
             'payment_details' => $this->getPaymentDetails($venda->id),
-            'reservation_id' => $venda->reserva_uuid ?? null,
+            'reservation' => $this->getReservationDetails($venda->id_reserva) ?? null,
             'user_name' => $venda->usuario_nome ?? null,
             'created_at' => $venda->created_at ?? null,
             'updated_at' => $venda->updated_at ?? null,
@@ -32,6 +34,24 @@ class VendaTransformer
         $itemVendaRepository = ItemVendaRepository::getInstance();
         $items = $itemVendaRepository->all(['id_venda' => $vendaId]);
         return array_sum(array_column($items, 'amount_item'));
+    }
+
+    private function getReservationDetails($reservaId)
+    {
+        if (is_null($reservaId)) {
+            return null;
+        }
+
+        $reservaRepository = ReservaRepository::getInstance();
+        $reserva = $reservaRepository->findById($reservaId);
+
+        if (is_null($reserva)) {
+            return null;
+        }
+
+        $reservaTransformer = new ReservaTransformer();
+
+        return $reservaTransformer->transform($reserva);
     }
 
     public function transformCollection(array $vendas)

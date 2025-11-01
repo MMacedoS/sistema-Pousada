@@ -7,6 +7,7 @@ use App\Http\Request\Request;
 use App\Repositories\Contracts\Sale\IVendaRepository;
 use App\Repositories\Contracts\Sale\IItemVendaRepository;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
+use App\Repositories\Contracts\Reservation\IReservaRepository;
 use App\Transformers\Sale\VendaTransformer;
 use App\Utils\Paginator;
 use App\Utils\Validator;
@@ -17,17 +18,20 @@ class VendaController extends Controller
     protected $itemVendaRepository;
     protected $caixaRepository;
     protected $vendaTransformer;
+    protected $reservaRepository;
 
     public function __construct(
         IVendaRepository $vendaRepository,
         IItemVendaRepository $itemVendaRepository,
         ICaixaRepository $caixaRepository,
-        VendaTransformer $vendaTransformer
+        VendaTransformer $vendaTransformer,
+        IReservaRepository $reservaRepository
     ) {
         $this->vendaRepository = $vendaRepository;
         $this->itemVendaRepository = $itemVendaRepository;
         $this->caixaRepository = $caixaRepository;
         $this->vendaTransformer = $vendaTransformer;
+        $this->reservaRepository = $reservaRepository;
     }
 
     public function index(Request $request)
@@ -70,6 +74,13 @@ class VendaController extends Controller
 
         if (!$validator->validate($rules)) {
             return $this->responseJson(['errors' => $validator->getErrors()], 422);
+        }
+
+        if (isset($data['reservation_id'])) {
+            $reserva = $this->reservaRepository->findByUuid($data['reservation_id']);
+            if (!is_null($reserva)) {
+                $data['reservation_id'] = $reserva->id;
+            }
         }
 
         $userId = $this->authUserByApi();

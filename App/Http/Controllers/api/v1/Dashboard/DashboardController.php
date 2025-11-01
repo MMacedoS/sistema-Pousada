@@ -48,9 +48,13 @@ class DashboardController extends Controller
 
     public function checkinToday()
     {
-        $today = date('Y-m-d H:i:s');
-        LoggerHelper::logInfo($today);
-        $reservas = $this->reservaRepository->getCheckinToday($today);
+        // Garante que a data seja sempre calculada no timezone brasileiro
+        $timezone = new \DateTimeZone($_ENV['APP_TIMEZONE'] ?? 'America/Sao_Paulo');
+        $today = new \DateTime('now', $timezone);
+        $todayString = $today->format('Y-m-d');
+
+        LoggerHelper::logInfo("Buscando check-ins para a data: {$todayString} (timezone: {$timezone->getName()})");
+        $reservas = $this->reservaRepository->getCheckinToday($todayString);
 
         if (empty($reservas)) {
             return $this->responseJson([], 200);
@@ -61,8 +65,13 @@ class DashboardController extends Controller
 
     public function checkoutToday()
     {
-        $today = date('Y-m-d');
-        $reservas = $this->reservaRepository->getCheckoutTodayOrLate($today);
+        // Garante que a data seja sempre calculada no timezone brasileiro
+        $timezone = new \DateTimeZone($_ENV['APP_TIMEZONE'] ?? 'America/Sao_Paulo');
+        $today = new \DateTime('now', $timezone);
+        $todayString = $today->format('Y-m-d');
+
+        LoggerHelper::logInfo("Buscando check-outs para a data: {$todayString} (timezone: {$timezone->getName()})");
+        $reservas = $this->reservaRepository->getCheckoutTodayOrLate($todayString);
 
         if (empty($reservas)) {
             return $this->responseJson([], 200);

@@ -8,6 +8,7 @@ use App\Repositories\Entities\Consumption\ConsumoRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Payment\PagamentoRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
+use App\Repositories\Entities\Sale\VendaRepository;
 use App\Repositories\Entities\User\UsuarioRepository;
 use App\Transformers\Apartment\ApartmentTransformer;
 
@@ -26,9 +27,10 @@ class ReservaTransformer
             'situation' => $data->situation ?? null,
             'amount' => $data->amount ?? null,
             'guests' => $data->guest ?? null,
-            'estimated_value' => $this->prepareTotalPerDiems($data->id) ?? null,
+            'estimated_value' => ($this->prepareTotalPerDiems($data->id) + $this->prepareTotalConsumptionsSales($data->id)) ?? null,
             'total_reservation_value' => $this->prepareTotalReserva($data) ?? 0,
             'consumption_value' => $this->prepareTotalConsumptions($data->id) ?? null,
+            'consumption_sale_value' => $this->prepareTotalConsumptionsSales($data->id) ?? null,
             'paid_amount' => $this->preparePaidAmount($data->id) ?? null,
             'type' => $data->type ?? null,
             'obs' => $data->obs ?? null,
@@ -91,5 +93,11 @@ class ReservaTransformer
     {
         $consumoRepository = ConsumoRepository::getInstance();
         return $consumoRepository->totalConsumptionsByReservaId($id);
+    }
+
+    private function prepareTotalConsumptionsSales($id)
+    {
+        $vendaRepository = VendaRepository::getInstance();
+        return $vendaRepository->totalConsumptionsSalesByReservaId($id);
     }
 }

@@ -28,6 +28,18 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
         $this->conn = Database::getInstance()->getConnection();
     }
 
+    private function ensureDateAsString($date): string
+    {
+        if (is_string($date)) {
+            return $date;
+        }
+
+        if ($date instanceof \DateTime) {
+            return $date->format('Y-m-d');
+        }
+        return (string) $date;
+    }
+
     public function findByReservaIdAndDate(int $reservaId, string $date)
     {
         $sql = "SELECT * FROM " . self::TABLE . " WHERE id_reserva = :id_reserva AND dt_daily = :dt_daily AND is_deleted = 0";
@@ -109,13 +121,8 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             ]);
 
             $diaria->id = (int)$this->conn->lastInsertId();
-            if ($diaria->id) {
-                return $diaria;
-            }
-            return null;
+            return $diaria->id ? $diaria : null;
         } catch (\Throwable $th) {
-            //throw $th;
-            LoggerHelper::logError("Error creating daily record: " . $th->getMessage());
             return null;
         }
     }
@@ -218,29 +225,39 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             return [];
         }
 
-        $createdDiarias = [];
-        $currentDate = new \DateTime($startDate, new \DateTimeZone('UTC'));
-        $endDate = new \DateTime($endDate, new \DateTimeZone('UTC'));
-
-        if ($reserva->type === self::TYPE_DAILY) {
-            while ($currentDate < $endDate) {
-                $item = [
-                    'id_reserva' => $reserva->id,
-                    'dt_daily' => $currentDate->format('Y-m-d'),
-                    'amount' => $reserva->amount,
-                    'status' => self::STATUS_AVAILABLE,
-                    'id_usuario' => $reserva->id_usuario,
-                    'is_deleted' => 0
-                ];
-                $diaria = $this->create($item);
-                if (is_null($diaria)) {
-                    $createdDiarias[] = $diaria;
-                }
-                $currentDate->modify('+1 day');
-            }
+        if ($this->hasExistingDiariasForReservation($reserva->id)) {
+            return $this->findByReservaId($reserva->id);
         }
 
-        if ($reserva->type === self::TYPE_PACKAGE) {
+        $createdDiarias = [];
+
+        try {
+            $startDateString = $this->ensureDateAsString($startDate);
+            $endDateString = $this->ensureDateAsString($endDate);
+
+            $currentDate = new \DateTime($startDateString);
+            $endDateTime = new \DateTime($endDateString);
+
+
+            if ($reserva->type === self::TYPE_DAILY) {
+                $createdDiarias = $this->createDailyTypeDiarias($reserva, $currentDate, $endDateTime);
+            }
+
+            if ($reserva->type === self::TYPE_PACKAGE) {
+                $createdDiarias = $this->createPackageTypeDiarias($reserva, $currentDate);
+            }
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao criar diárias para a reserva {$reserva->id}: " . $e->getMessage());
+        }
+
+        return $createdDiarias;
+    }
+
+    private function createDailyTypeDiarias(Reserva $reserva, \DateTime $currentDate, \DateTime $endDate): array
+    {
+        $createdDiarias = [];
+
+        while ($currentDate < $endDate) {
             $item = [
                 'id_reserva' => $reserva->id,
                 'dt_daily' => $currentDate->format('Y-m-d'),
@@ -249,13 +266,76 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
                 'id_usuario' => $reserva->id_usuario,
                 'is_deleted' => 0
             ];
+
             $diaria = $this->create($item);
-            if ($diaria) {
+            if (!is_null($diaria)) {
                 $createdDiarias[] = $diaria;
             }
+
+            $currentDate->modify('+1 day');
         }
 
         return $createdDiarias;
+    }
+
+    private function createPackageTypeDiarias(Reserva $reserva, \DateTime $currentDate): array
+    {
+        $createdDiarias = [];
+
+        $item = [
+            'id_reserva' => $reserva->id,
+            'dt_daily' => $currentDate->format('Y-m-d'),
+            'amount' => $reserva->amount,
+            'status' => self::STATUS_AVAILABLE,
+            'id_usuario' => $reserva->id_usuario,
+            'is_deleted' => 0
+        ];
+
+        $diaria = $this->create($item);
+        if (!is_null($diaria)) {
+            $createdDiarias[] = $diaria;
+        }
+
+        return $createdDiarias;
+    }
+
+    public function hasExistingDiariasForReservation(int $reservaId): bool
+    {
+        if ($reservaId <= 0) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT COUNT(*) as total FROM " . self::TABLE . " WHERE id_reserva = :id_reserva AND is_deleted = 0"
+            );
+            $stmt->execute([':id_reserva' => $reservaId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return ($result && $result['total'] > 0);
+        } catch (\Throwable $th) {
+            LoggerHelper::logError("Erro ao verificar diárias existentes: " . $th->getMessage());
+            return false;
+        }
+    }
+
+    public function findByReservaId(int $reservaId): array
+    {
+        if ($reservaId <= 0) {
+            return [];
+        }
+
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT * FROM " . self::TABLE . " WHERE id_reserva = :id_reserva AND is_deleted = 0 ORDER BY dt_daily ASC"
+            );
+            $stmt->execute([':id_reserva' => $reservaId]);
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+        } catch (\Throwable $th) {
+            LoggerHelper::logError("erro ao buscar diárias por ID de reserva: " . $th->getMessage());
+            return [];
+        }
     }
 
     public function updateStatusByReservaId(int $reservaId, string $status)
@@ -270,12 +350,8 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             );
             $stmt->execute([':status' => $status, ':id' => $reservaId]);
 
-            if ($stmt->rowCount() > 0) {
-                return true;
-            }
-            return false;
+            return $stmt->rowCount() > 0;
         } catch (\Throwable $th) {
-            //throw $th;
             return false;
         }
     }
