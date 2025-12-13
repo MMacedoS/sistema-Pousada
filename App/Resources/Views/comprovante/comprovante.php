@@ -403,6 +403,7 @@
                             <?php
                             $checkout = new DateTime($reserva['checkout']);
                             echo $checkout->format('d/m/Y H:i');
+                            $checkout->modify('+2 hours');
                             ?>
                         </div>
                     </div>

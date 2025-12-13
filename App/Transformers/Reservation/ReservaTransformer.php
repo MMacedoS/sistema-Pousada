@@ -14,6 +14,7 @@ use App\Transformers\Apartment\ApartmentTransformer;
 
 class ReservaTransformer
 {
+    private const TYPE_HOURLY = 'pacote';
     public function transform(Reserva $data): array
     {
         return [
@@ -41,7 +42,13 @@ class ReservaTransformer
 
     private function prepareTotalReserva(Reserva $data): float
     {
-        $countDays = (new \DateTime($data->dt_checkout))->diff(new \DateTime($data->dt_checkin))->days;
+        if ($data->type === self::TYPE_HOURLY) {
+            return (float) $data->amount;
+        }
+        $checkout = new \DateTime($data->dt_checkout);
+        $checkout->modify('+2 hours');
+
+        $countDays = ($checkout)->diff(new \DateTime($data->dt_checkin))->days;
         if ($countDays == 0) {
             $countDays = 1; // Garantir que pelo menos um dia seja contado
         }

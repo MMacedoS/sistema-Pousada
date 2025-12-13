@@ -29,4 +29,6 @@ interface IProdutoRepository
     public function checkStock(int $id, int $quantity);
 
     public function getCategories();
+
+    public function getConsumptionByPeriod(string $startDate, string $endDate);
 }

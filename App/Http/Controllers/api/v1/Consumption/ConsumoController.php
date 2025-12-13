@@ -8,7 +8,6 @@ use App\Repositories\Contracts\Consumption\IConsumoRepository;
 use App\Repositories\Contracts\Product\IProdutoRepository;
 use App\Repositories\Contracts\Reservation\IReservaRepository;
 use App\Transformers\Consumptions\ConsumoTransformer;
-use App\Utils\LoggerHelper;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -140,5 +139,29 @@ class ConsumoController extends Controller
         }
 
         return $this->responseJson("deleted successfully!");
+    }
+
+    public function getConsumptionByPeriod(Request $request)
+    {
+        $this->checkPermission('consumption.view');
+
+        $params = $request->getQueryParams();
+
+        if (empty($params['start_date']) || empty($params['end_date'])) {
+            return $this->responseJson("start_date and end_date are required", 422);
+        }
+
+        $name = $params['name'] ?? null;
+
+        $consumos = $this->produtoRepository->getConsumptionByPeriod(
+            $params['start_date'],
+            $params['end_date'],
+            $name
+        );
+
+        return $this->responseJson([
+            'consumptions' => $consumos,
+            'total_records' => count($consumos)
+        ]);
     }
 }

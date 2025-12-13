@@ -26,6 +26,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private const SITUATION_CONFIRMED = 'Confirmada';
     private const SITUATION_HOSTED = 'Hospedada';
     private const TABLE = "reservas";
+    private const SITUATION_IMPEDED = 'Impedido';
     private const IS_NOT_DELETED = 0;
     private const IS_DELETED = 1;
     private $reservaHospedeRepository;
@@ -296,14 +297,14 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             ON a.id = r.id_apartamento
             AND (
                 DATE(r.dt_checkin) <= DATE(:end_date)
-                AND DATE(r.dt_checkout) >= DATE(:start_date)
+                AND DATE(r.dt_checkout) > DATE(:start_date)
                 AND (
                     (r.situation IN (:reserved, :confirmed) AND r.is_deleted = :is_deleted)
                     OR
                     (r.situation = :hosted AND r.is_deleted = :is_deleted AND DATE(r.dt_checkout) > DATE(:start_date))
                 )
             )
-        WHERE r.id_apartamento IS NULL";
+        WHERE r.id_apartamento IS NULL AND a.situation != :situation_none";
 
         $bindings = [
             ':start_date' => $params['check_in'],
@@ -312,6 +313,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             ':confirmed'  => self::SITUATION_CONFIRMED,
             ':hosted'     => self::SITUATION_HOSTED,
             ':is_deleted' => self::IS_NOT_DELETED,
+            ':situation_none' => self::SITUATION_IMPEDED,
         ];
 
         $conditions = [];

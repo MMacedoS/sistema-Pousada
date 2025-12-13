@@ -308,4 +308,62 @@ class ProdutoRepository extends SingletonInstance implements IProdutoRepository
             return [];
         }
     }
+
+    public function getConsumptionByPeriod(string $startDate, string $endDate, ?string $name = null)
+    {
+        try {
+            $startDateTime = $startDate . ' 00:00:00';
+            $endDateTime = $endDate . ' 23:59:59';
+
+            $sql = "SELECT 
+                        p.id,
+                        p.name,
+                        COALESCE(SUM(consumo_venda.quantity), 0) as total_quantity,
+                        COALESCE(SUM(consumo_venda.total_amount), 0) as total_amount
+                    FROM produtos p
+                    LEFT JOIN (
+                        SELECT 
+                            id_produto,
+                            quantity,
+                            amount as total_amount,
+                            created_at as dt_transaction
+                        FROM consumos
+                        WHERE status = 1
+                        
+                        UNION ALL
+                        SELECT 
+                            id_produto,
+                            quantity,
+                            amount_item as total_amount,
+                            created_at as dt_transaction
+                        FROM itens_venda
+                        WHERE status = 1
+                    ) AS consumo_venda ON p.id = consumo_venda.id_produto
+                        AND consumo_venda.dt_transaction BETWEEN :start_date AND :end_date
+                    WHERE p.active = 1";
+
+            $params = [
+                ':start_date' => $startDateTime,
+                ':end_date' => $endDateTime
+            ];
+
+            if (!empty($name)) {
+                $sql .= " AND p.name LIKE :name";
+                $params[':name'] = '%' . $name . '%';
+            }
+
+            $sql .= " GROUP BY p.id, p.name
+                    HAVING COALESCE(SUM(consumo_venda.quantity), 0) > 0
+                    ORDER BY p.name ASC;
+            ";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute($params);
+
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao buscar consumo por período: " . $e->getMessage());
+            return [];
+        }
+    }
 }
