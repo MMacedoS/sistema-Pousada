@@ -19,6 +19,7 @@ class VendaTransformer
             'description' => $venda->description ?? null,
             'sale_date' => $venda->dt_sale ?? null,
             'current_amount' => $this->calculateAmountItems($venda->id) + ($venda->amount_sale ?? 0),
+            'amount_sale' => $venda->amount_sale ?? 0,
             'status' => $venda->status ?? null,
             'payment_status' => $this->preparePaymentStatus($venda->id),
             'payment_details' => $this->getPaymentDetails($venda->id),
@@ -33,7 +34,33 @@ class VendaTransformer
     {
         $itemVendaRepository = ItemVendaRepository::getInstance();
         $items = $itemVendaRepository->all(['id_venda' => $vendaId]);
-        return array_sum(array_column($items, 'amount_item'));
+
+        if (empty($items)) {
+            return 0;
+        }
+
+        $total = 0;
+        foreach ($items as $item) {
+            // valores padrão
+            $amount = 0.0;
+            $quantity = 1;
+
+            // suporte para arrays retornados pelo repositório
+            if (is_array($item)) {
+                $amount = isset($item['amount_item']) ? (float) $item['amount_item'] : $amount;
+                $quantity = isset($item['quantity']) ? (int) $item['quantity'] : $quantity;
+            }
+
+            // suporte para objetos retornados pelo repositório
+            if (is_object($item)) {
+                $amount = isset($item->amount_item) ? (float) $item->amount_item : $amount;
+                $quantity = isset($item->quantity) ? (int) $item->quantity : $quantity;
+            }
+
+            $total += $amount * $quantity;
+        }
+
+        return $total;
     }
 
     private function getReservationDetails($reservaId)

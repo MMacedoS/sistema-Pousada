@@ -39,6 +39,11 @@ class VendaController extends Controller
         $this->checkPermission('sales.view');
 
         $params = $request->getQueryParams();
+
+        if (isset($params['status']) && $params['status'] === 'all') {
+            $params['status'] = "Pendente";
+        }
+
         $vendas = $this->vendaRepository->all($params);
 
         $perPage = $request->getParam('limit') ?? 10;

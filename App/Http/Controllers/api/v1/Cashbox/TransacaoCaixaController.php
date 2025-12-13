@@ -3,9 +3,6 @@
 namespace App\Http\Controllers\api\v1\Cashbox;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\v1\Traits\GenericTrait;
-use App\Http\Controllers\v1\Traits\UserToPerson;
-use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Cashbox\ICaixaRepository;
 use App\Repositories\Contracts\Cashbox\ITransacaoCaixaRepository;
