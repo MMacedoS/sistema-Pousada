@@ -3,6 +3,12 @@
 namespace App\Transformers\Cashbox;
 
 use App\Models\Cashbox\TransacaoCaixa;
+use App\Repositories\Entities\Sale\VendaRepository;
+use App\Repositories\Entities\Reservation\ReservaRepository;
+use App\Repositories\Entities\Payment\PagamentoRepository;
+use App\Transformers\Sale\VendaTransformer;
+use App\Transformers\Reservation\ReservaTransformer;
+use App\Transformers\Payment\PagamentoTransformer;
 
 class TransacaoCaixaTransformer
 {
@@ -24,6 +30,8 @@ class TransacaoCaixaTransformer
             $transacao = (object) $transacao;
         }
 
+        $referenceData = $this->getReferenceData($transacao->origin, $transacao->reference_uuid);
+
         return [
             'code' => (int)$transacao->id,
             'id' => $transacao->uuid,
@@ -31,10 +39,64 @@ class TransacaoCaixaTransformer
             'description' => $transacao->description,
             'payment_form' => $transacao->payment_form,
             'origin' => $transacao->origin,
+            'reference_id' => $transacao->reference_uuid,
+            'reference_data' => $referenceData,
             'canceled' => (bool)$transacao->canceled,
             'amount' => (float)$transacao->amount ?? 0,
             'created_at' => $transacao->created_at,
         ];
+    }
+
+    private function getReferenceData(?string $origin, ?string $referenceId): ?array
+    {
+        if (is_null($origin) || is_null($referenceId)) {
+            return null;
+        }
+
+        try {
+            switch (strtolower($origin)) {
+                case 'venda':
+                case 'sale':
+                    $venda = VendaRepository::getInstance()->findByUuid($referenceId);
+                    if ($venda) {
+                        $vendaTransformer = new VendaTransformer();
+                        return $vendaTransformer->transform($venda);
+                    }
+                    break;
+
+                case 'reserva':
+                case 'reservation':
+                    $reserva = ReservaRepository::getInstance()->findByUuid($referenceId);
+                    if ($reserva) {
+                        $reservaTransformer = new ReservaTransformer();
+                        return $reservaTransformer->transform($reserva);
+                    }
+                    break;
+
+                case 'pagamento':
+                case 'payment':
+                    $pagamento = PagamentoRepository::getInstance()->findByUuid($referenceId);
+                    if ($pagamento) {
+                        $pagamentoTransformer = new PagamentoTransformer();
+                        return $pagamentoTransformer->transform($pagamento);
+                    }
+                    break;
+
+                default:
+                    return [
+                        'type' => ucfirst($origin),
+                        'id' => $referenceId,
+                    ];
+            }
+        } catch (\Exception $e) {
+            return [
+                'type' => ucfirst($origin),
+                'id' => $referenceId,
+                'error' => 'Erro ao buscar dados da referência',
+            ];
+        }
+
+        return null;
     }
 
     public function transformCollection(array $transacoes)

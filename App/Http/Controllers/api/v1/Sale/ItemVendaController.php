@@ -42,7 +42,7 @@ class ItemVendaController extends Controller
 
         $items = $this->itemVendaRepository->all($params);
 
-        $perPage = $request->getParam('limit') ?? 10;
+        $perPage = $request->getParam('limit') ?? 1000;
         $currentPage = $request->getParam('page') ?? 1;
 
         $paginator = new Paginator($items, $perPage, $currentPage);

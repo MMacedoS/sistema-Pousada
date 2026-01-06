@@ -15,4 +15,6 @@ interface ITransacaoCaixaRepository
     public function cancelledTransaction(int $id);
     public function updateTransaction(array $data, int $id);
     public function transactionsByUserId(int $id_usuario);
+    public function findByPeriod(string $startDate, string $endDate);
+    public function findByPeriodAndType(string $startDate, string $endDate, string $type);
 }

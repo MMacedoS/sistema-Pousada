@@ -12,4 +12,5 @@ interface IDiariaRepository
     public function update(array $data, int $id);
     public function delete(int $id);
     public function totalAmountByReservaId(int $reservaId): float;
+    public function findByPeriod(string $startDate, string $endDate);
 }

@@ -37,4 +37,8 @@ interface IReservaRepository
     public function getCurrentGuestsCount(): int;
 
     public function checkOut(string $uuid, string $userId);
+
+    public function findExistingReservation(int $apartmentId, int $customerId, string $checkIn, string $checkOut);
+
+    public function processAutoCheckIn(int $reservaId, string $userId);
 }

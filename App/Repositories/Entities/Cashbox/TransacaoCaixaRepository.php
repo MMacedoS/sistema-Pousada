@@ -372,4 +372,34 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
         $stmt->execute([':id_usuario' => $id_usuario]);
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
+
+    public function findByPeriod(string $startDate, string $endDate)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE DATE(created_at) BETWEEN :start_date AND :end_date
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([
+            ':start_date' => $startDate,
+            ':end_date' => $endDate
+        ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function findByPeriodAndType(string $startDate, string $endDate, string $type)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE DATE(created_at) BETWEEN :start_date AND :end_date
+            AND type = :type
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([
+            ':start_date' => $startDate,
+            ':end_date' => $endDate,
+            ':type' => $type
+        ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
 }

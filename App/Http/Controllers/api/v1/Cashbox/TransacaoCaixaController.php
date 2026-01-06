@@ -269,7 +269,39 @@ class TransacaoCaixaController extends Controller
     {
         $this->checkPermission('financial.cashbox.reports');
 
-        $transacoes = $this->transacaoCaixaRepository->all();
+        $params = $request->getQueryParams();
+
+        $filters = [];
+
+        if (isset($params['start_date'])) {
+            $filters['data_inicio'] = $params['start_date'];
+        }
+
+        if (isset($params['end_date'])) {
+            $filters['data_fim'] = $params['end_date'];
+        }
+
+        if (isset($params['type'])) {
+            $filters['type'] = $params['type'];
+        }
+
+        if (isset($params['origin'])) {
+            $filters['origin'] = $params['origin'];
+        }
+
+        if (isset($params['payment_form'])) {
+            $filters['payment_form'] = $params['payment_form'];
+        }
+
+        if (isset($params['caixa_id'])) {
+            $filters['caixa_id'] = $params['caixa_id'];
+        }
+
+        if (isset($params['id_usuario'])) {
+            $filters['id_usuario'] = $params['id_usuario'];
+        }
+
+        $transacoes = $this->transacaoCaixaRepository->all($filters);
 
         $report = $this->transacaoCaixaTransformer->transformTransactionToFinance($transacoes);
 

@@ -15,6 +15,7 @@ use App\Http\Controllers\api\v1\Customer\ClienteController;
 use App\Http\Controllers\api\v1\Dashboard\DashboardController;
 use App\Http\Controllers\api\v1\Diaries\DiariaController;
 use App\Http\Controllers\api\v1\Employees\FuncionariosController;
+use App\Http\Controllers\api\v1\Financial\FinanceiroController;
 use App\Http\Controllers\api\v1\Payment\PagamentoController;
 use App\Http\Controllers\api\v1\Permission\PermissaoController;
 use App\Http\Controllers\api\v1\Product\ProdutoController;
@@ -48,6 +49,7 @@ $reservaController = $container->get(ReservaController::class);
 $diariaController = $container->get(DiariaController::class);
 $consumoController = $container->get(ConsumoController::class);
 $dashboardController = $container->get(DashboardController::class);
+$financeiroController = $container->get(FinanceiroController::class);
 
 $router = new Router();
 $auth = new Auth();
@@ -72,5 +74,6 @@ require_once __DIR__ . '/api/v1/reservation/reservationRouter.php';
 require_once __DIR__ . '/api/v1/diaries/dailyRouter.php';
 require_once __DIR__ . '/api/v1/consumptions/consumptionRouter.php';
 require_once __DIR__ . '/api/v1/dashboard/dashboardRouter.php';
+require_once __DIR__ . '/api/v1/financial/financialRouter.php';
 
 return $router;

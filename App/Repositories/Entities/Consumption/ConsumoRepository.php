@@ -172,4 +172,25 @@ class ConsumoRepository extends SingletonInstance implements IConsumoRepository
             return 0.00;
         }
     }
+
+    public function findByPeriod(string $startDate, string $endDate)
+    {
+        $sql = "SELECT c.* 
+                FROM " . self::TABLE . " c
+                WHERE DATE(c.created_at) BETWEEN :start_date AND :end_date
+                ORDER BY c.created_at DESC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                ':start_date' => $startDate,
+                ':end_date' => $endDate
+            ]);
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+        } catch (\PDOException $e) {
+            LoggerHelper::logError("Error finding consumptions by period: " . $e->getMessage());
+            return [];
+        }
+    }
 }

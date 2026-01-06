@@ -355,4 +355,26 @@ class DiariaRepository extends SingletonInstance implements IDiariaRepository
             return false;
         }
     }
+
+    public function findByPeriod(string $startDate, string $endDate)
+    {
+        $sql = "SELECT d.* 
+                FROM " . self::TABLE . " d
+                WHERE DATE(d.dt_daily) BETWEEN :start_date AND :end_date
+                AND d.is_deleted = 0
+                ORDER BY d.dt_daily DESC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                ':start_date' => $startDate,
+                ':end_date' => $endDate
+            ]);
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+        } catch (\PDOException $e) {
+            LoggerHelper::logError("Error finding diaries by period: " . $e->getMessage());
+            return [];
+        }
+    }
 }

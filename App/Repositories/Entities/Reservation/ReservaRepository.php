@@ -506,6 +506,34 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
     }
 
+    public function processAutoCheckIn(int $reservaId, string $userId)
+    {
+        $reserva = $this->findById($reservaId);
+
+        if (is_null($reserva)) {
+            return false;
+        }
+
+        if ($this->diariaRepository->hasExistingDiariasForReservation($reservaId)) {
+            LoggerHelper::logInfo("Check-in automático ignorado: diárias já existem para reserva {$reservaId}");
+            return true;
+        }
+
+        try {
+            $apartmentUpdated = $this->updateApartmentStatusToOccupied($reserva->id_apartamento);
+            if (!$apartmentUpdated) {
+                return false;
+            }
+
+            $this->createDiariasIfNeeded($reserva);
+
+            return true;
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao processar check-in automático para reserva {$reservaId}: " . $e->getMessage());
+            return false;
+        }
+    }
+
     private function isValidForCheckIn(?Reserva $reserva): bool
     {
         if (is_null($reserva)) {
@@ -640,5 +668,30 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
 
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result ? (int)$result['guest_count'] : 0;
+    }
+
+    public function findExistingReservation(int $apartmentId, int $customerId, string $checkIn, string $checkOut): ?object
+    {
+        $sql = "SELECT r.*
+                FROM reservas r
+                INNER JOIN reserva_hospedes rh ON r.id = rh.id_reserva
+                WHERE r.id_apartamento = :apartment_id
+                  AND rh.id_hospede = :customer_id
+                  AND r.dt_checkin = :check_in
+                  AND r.dt_checkout = :check_out
+                  AND r.is_deleted = 0
+                  AND r.situation IN ('Reservada', 'Confirmada', 'Hospedada')
+                LIMIT 1";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':apartment_id' => $apartmentId,
+            ':customer_id' => $customerId,
+            ':check_in' => $checkIn,
+            ':check_out' => $checkOut
+        ]);
+
+        $result = $stmt->fetchObject(self::CLASS_NAME);
+        return $result !== false ? $result : null;
     }
 }

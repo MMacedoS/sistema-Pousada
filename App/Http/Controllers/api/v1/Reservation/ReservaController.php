@@ -94,6 +94,24 @@ class ReservaController extends Controller
                     return $this->responseJson("Apartamento não encontrado", 422);
                 }
 
+                $existingReservation = $this->reservaRepository->findExistingReservation(
+                    $apartment->id,
+                    $customer->id,
+                    $data['check_in'],
+                    $data['check_out']
+                );
+
+                if (!is_null($existingReservation)) {
+                    return $this->responseJson([
+                        'message' => 'Já existe uma reserva para este apartamento, cliente e período',
+                        'apartment_id' => $apartmentId,
+                        'customer_id' => $data['customer_id'],
+                        'check_in' => $data['check_in'],
+                        'check_out' => $data['check_out'],
+                        'existing_reservation_uuid' => $existingReservation->uuid,
+                    ], 422);
+                }
+
                 $isAvailable = $this->reservaRepository->isApartmentAvailable(
                     $apartment->id,
                     $data['check_in'],
@@ -125,6 +143,13 @@ class ReservaController extends Controller
 
                 if (is_null($reserva)) {
                     return $this->responseJson("Falha ao criar reserva para o apartamento ID: $apartmentId", 422);
+                }
+
+                if ($data['status'] === 'Hospedada') {
+                    $checkInProcessed = $this->reservaRepository->processAutoCheckIn($reserva->id, $user_id);
+                    if (!$checkInProcessed) {
+                        return $this->responseJson("Reserva criada mas falha ao processar check-in automático para apartamento ID: $apartmentId", 422);
+                    }
                 }
             }
             return $this->responseJson([
@@ -172,6 +197,32 @@ class ReservaController extends Controller
             return $this->responseJson("Apartamento não encontrado", 422);
         }
 
+        $existingReservation = $this->reservaRepository->findExistingReservation(
+            $apartment->id,
+            $customer->id,
+            $data['check_in'],
+            $data['check_out']
+        );
+
+        if (!is_null($existingReservation)) {
+            return $this->responseJson([
+                'message' => 'Já existe uma reserva para este apartamento, cliente e período',
+                'existing_reservation_uuid' => $existingReservation->uuid,
+            ], 422);
+        }
+
+        $isAvailable = $this->reservaRepository->isApartmentAvailable(
+            $apartment->id,
+            $data['check_in'],
+            $data['check_out']
+        );
+
+        if (!$isAvailable) {
+            return $this->responseJson([
+                'message' => 'Apartamento não disponível para o período selecionado',
+            ], 422);
+        }
+
         $data['id_apartamento'] = $apartment->id;
         $data['id_usuario'] = $user_id;
         $data['customer_id'] = $customer->id;
@@ -183,6 +234,14 @@ class ReservaController extends Controller
 
         if (is_null($reserva)) {
             return $this->responseJson("Falha ao criar reserva", 422);
+        }
+
+        if ($data['situation'] === 'Hospedada') {
+            $checkInProcessed = $this->reservaRepository->processAutoCheckIn($reserva->id, $user_id);
+            if (!$checkInProcessed) {
+                return $this->responseJson("Reserva criada mas falha ao processar check-in automático", 422);
+            }
+            $reserva = $this->reservaRepository->findById($reserva->id);
         }
 
         $reserva = $this->reservaTransformer->transform($reserva);
@@ -240,6 +299,8 @@ class ReservaController extends Controller
             return $this->responseJson("Reserva não encontrada", 422);
         }
 
+        $wasAlreadyHosted = ($reserva->situation === 'Hospedada');
+
         $isAvailable = $this->reservaRepository->isApartmentAvailable(
             $data['id_apartamento'],
             $data['dt_checkin'],
@@ -259,6 +320,14 @@ class ReservaController extends Controller
 
         if (is_null($reserva)) {
             return $this->responseJson("Falha ao atualizar reserva", 422);
+        }
+
+        if ($data['situation'] === 'Hospedada' && !$wasAlreadyHosted) {
+            $checkInProcessed = $this->reservaRepository->processAutoCheckIn($reserva->id, $user_id);
+            if (!$checkInProcessed) {
+                return $this->responseJson("Reserva atualizada mas falha ao processar check-in automático", 422);
+            }
+            $reserva = $this->reservaRepository->findById($reserva->id);
         }
 
         $reserva = $this->reservaTransformer->transform($reserva);
