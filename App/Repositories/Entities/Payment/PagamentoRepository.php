@@ -6,6 +6,7 @@ use App\Config\Database;
 use App\Config\SingletonInstance;
 use App\Models\Payment\Pagamento;
 use App\Repositories\Contracts\Payment\IPagamentoRepository;
+use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 use PDO;
 
@@ -13,9 +14,12 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
 {
     private const CLASS_NAME = Pagamento::class;
     private const TABLE = 'pagamentos';
+    private const PAGO = 1;
+    private const NAO_PAGO = 0;
+    private const IS_NOT_DELETED = 0;
+    private const IS_DELETED = 1;
 
-    protected $conn;
-    protected $model;
+    use FindTrait;
 
     public function __construct()
     {
@@ -35,7 +39,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
 
     public function all(array $params = [])
     {
-        $sql = "SELECT p.*, v.name as venda_nome, u.name as usuario_nome 
+        $sql = "SELECT p.*
                 FROM " . self::TABLE . " p 
                 LEFT JOIN vendas v ON p.id_venda = v.id 
                 LEFT JOIN usuarios u ON p.id_usuario = u.id 
@@ -68,7 +72,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($filters);
 
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
 
     public function create(array $data)
@@ -97,36 +101,6 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao criar pagamento: " . $e->getMessage());
             throw new \Exception("Erro ao criar pagamento");
-        }
-    }
-
-    public function findById(int $id)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':id' => $id]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar pagamento por ID: " . $e->getMessage());
-            return null;
-        }
-    }
-
-    public function findByUuid(string $uuid)
-    {
-        try {
-            $sql = "SELECT * FROM " . self::TABLE . " WHERE uuid = :uuid";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute([':uuid' => $uuid]);
-
-            $data = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $data ? $this->model->create($data) : null;
-        } catch (\Exception $e) {
-            LoggerHelper::logError("Erro ao buscar pagamento por UUID: " . $e->getMessage());
-            return null;
         }
     }
 
@@ -192,7 +166,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':venda_id' => $vendaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por venda: " . $e->getMessage());
             return [];
@@ -206,7 +180,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':reserva_id' => $reservaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por reserva: " . $e->getMessage());
             return [];
@@ -220,7 +194,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':caixa_id' => $caixaId]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por caixa: " . $e->getMessage());
             return [];
@@ -241,7 +215,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
                 ':end_date' => $endDate
             ]);
 
-            return $stmt->fetchAll(PDO::FETCH_OBJ);
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao buscar pagamentos por período: " . $e->getMessage());
             return [];
@@ -268,7 +242,7 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
     public function cancelPayment(int $id)
     {
         try {
-            $sql = "UPDATE " . self::TABLE . " SET status = 0 WHERE id = :id";
+            $sql = "UPDATE " . self::TABLE . " SET status = 0, is_deleted = 0 WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->execute([':id' => $id]);
 
@@ -277,5 +251,72 @@ class PagamentoRepository extends SingletonInstance implements IPagamentoReposit
             LoggerHelper::logError("Erro ao cancelar pagamento: " . $e->getMessage());
             throw new \Exception("Erro ao cancelar pagamento");
         }
+    }
+
+    public function paidAmountByReservaId(int $reservaId): float
+    {
+        if ($reservaId <= 0) {
+            return 0.0;
+        }
+
+        try {
+            $stmt = $this->conn->prepare(
+                "SELECT SUM(payment_amount) as paid_amount FROM " . self::TABLE . " WHERE id_reserva = :reserva_id AND status = 1"
+            );
+            $stmt->execute([':reserva_id' => $reservaId]);
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            return $result['paid_amount'] !== null ? (float)$result['paid_amount'] : 0.0;
+        } catch (\Throwable $th) {
+            return 0.0;
+        }
+    }
+
+    public function getRevenueByPeriod($start, $end)
+    {
+        $start = $start ?? date('Y-m-d');
+        $end = $end ?? date('Y-m-d');
+
+        $stmt = $this->conn->prepare(
+            "SELECT 
+                dt_payment as date, 
+                type_payment, 
+                SUM(payment_amount) as revenue
+             FROM pagamentos
+             WHERE dt_payment BETWEEN :start AND :end
+               AND status = :status
+               AND is_deleted = :is_deleted
+             GROUP BY dt_payment, type_payment
+             ORDER BY dt_payment ASC"
+        );
+        $stmt->execute([
+            ':start' => $start,
+            ':end' => $end,
+            ':status' => self::PAGO,
+            ':is_deleted' => self::IS_NOT_DELETED
+        ]);
+        $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $response = [];
+        foreach ($result as $row) {
+            $date = $row['date'];
+            $type = $row['type_payment'];
+            $revenue = (float)$row['revenue'];
+
+            if (!isset($response[$date])) {
+                $response[$date] = [];
+            }
+            $response[$date][$type] = $revenue;
+        }
+
+        $formatted = [];
+        foreach ($response as $date => $types) {
+            $formatted[] = [
+                'date' => $date,
+                'types' => $types
+            ];
+        }
+
+        return $formatted;
     }
 }

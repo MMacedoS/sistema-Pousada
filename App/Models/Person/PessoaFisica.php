@@ -13,7 +13,7 @@ class PessoaFisica
     public string $uuid;
     public string $name;
     public ?string $social_name;
-    public string $email;
+    public ?string $email;
     public $usuario_id;
     public ?string $address;
     public $active;
@@ -23,8 +23,8 @@ class PessoaFisica
     public ?string $phone;
     public $is_deleted;
     public ?string $gender;
-    public $created_at;
-    public $updated_at;
+    public ?string $created_at;
+    public ?string $updated_at;
 
     public function __construct() {}
 
@@ -40,7 +40,7 @@ class PessoaFisica
         $pessoa_fisica->address = isset($data['address']) ? $data['address'] : null;
         $pessoa_fisica->phone = isset($data['phone']) ? $data['phone'] : null;
         $pessoa_fisica->usuario_id = isset($data['usuario_id']) ? $data['usuario_id'] : null;
-        $pessoa_fisica->birthday = isset($data['birthday']) ? $data['birthday'] : null;
+        $pessoa_fisica->birthday = isset($data['birthday']) && !empty($data['birthday']) ? $data['birthday'] : date("Y-m-d");
         $pessoa_fisica->doc = isset($data['doc']) ? $data['doc'] : null;
         $pessoa_fisica->type_doc = isset($data['type_doc']) ? $data['type_doc'] : null;
         $pessoa_fisica->gender = isset($data['gender']) ? $data['gender'] : null;

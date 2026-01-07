@@ -1,21 +1,27 @@
 <?php
-namespace App\Config;        
+
+namespace App\Config;
 
 use App\Http\CorsHelper;
 
 CorsHelper::handle([
     'https://localhost:5173',
+    'https://localhost:4173',
     'https://sistemareserva.localhost:5173',
+    'https://sistemareserva.localhost:4173',
+    'https://reserva-prp.vercel.app'
 ]);
 
 use App\Http\Request\Request;
 
-class Router {
-    protected $routers = [];    
-    protected $auth = null; 
+class Router
+{
+    protected $routers = [];
+    protected $auth = null;
     public $userLogado;
 
-    public function create(string $method, string $path, callable $callback, ?Auth $auth) {
+    public function create(string $method, string $path, callable $callback, ?Auth $auth)
+    {
         $normalizedPath = $this->normalizePath($path);
         $this->routers[$method][$normalizedPath] = [
             'callback' => $callback,
@@ -23,7 +29,8 @@ class Router {
         ];
     }
 
-    public function init() {
+    public function init()
+    {
         $httpMethod = $_SERVER["REQUEST_METHOD"];
         $requestUri = $_SERVER["REQUEST_URI"];
         $request = new Request();
@@ -54,27 +61,29 @@ class Router {
                 // Executa o callback da rota
                 return call_user_func_array($route['callback'], array_merge([$request], $params));
             }
-        }            
-
+        }
     }
 
-    private function normalizePath($path) {
+    private function normalizePath($path)
+    {
         return rtrim(parse_url($path, PHP_URL_PATH), '/');
     }
 
-    public function view(string $viewName, array $data = []) {
+    public function view(string $viewName, array $data = [])
+    {
         extract($data);
         require_once __DIR__ . '/../Resources/Views/' . $viewName . '.php';
         exit();
     }
 
-    public function redirect($page = '', $delay = 0) {
+    public function redirect($page = '', $delay = 0)
+    {
         $url = $_ENV['URL_PREFIX_APP'] . '/' . $page;
         if ($delay > 0) {
             echo "<meta http-equiv='refresh' content='{$delay};url={$url}'>";
             exit();
-        } 
-        
+        }
+
         header("Location: $url");
         exit();
     }

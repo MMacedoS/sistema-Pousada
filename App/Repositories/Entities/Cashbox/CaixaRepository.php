@@ -12,6 +12,13 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
 {
     private const CLASS_NAME = Caixa::class;
     private const TABLE = "caixas";
+    private const FORM_CASH = 'cash';
+    private const TYPE_INPUT = 'entrada';
+    private const TYPE_OUTPUT = 'saida';
+    private const TYPE_BLOOD = 'sangria';
+    private const OPEN = "aberto";
+    private const CLOSED = "fechado";
+    private const DISABLED = 1;
 
     use FindTrait;
 
@@ -75,11 +82,11 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
         $stmt = $this->conn->prepare("
             SELECT * FROM caixas 
             WHERE id_usuario_opened = :user_id 
-            AND status = 'aberto'
+            AND status = :status
             LIMIT 1
         ");
 
-        $stmt->execute([':user_id' => $userId]);
+        $stmt->execute([':user_id' => $userId, ':status' => self::OPEN]);
 
         return $stmt->fetchObject(Caixa::class);
     }
@@ -160,7 +167,7 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
     public function closedCashbox(int $id, array $data)
     {
         // Força o status como 'fechado'
-        $data['status'] = 'fechado';
+        $data['status'] = self::CLOSED;
 
         return $this->update($data, $id);
     }
@@ -170,10 +177,10 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
         $stmt = $this->conn->prepare("
             SELECT * FROM caixas 
             WHERE id_usuario_opened = :id_usuario 
-            AND status = 'aberto' 
+            AND status = :status
             LIMIT 1
         ");
-        $stmt->execute([':id_usuario' => $id_usuario]);
+        $stmt->execute([':id_usuario' => $id_usuario, ':status' => self::OPEN]);
         $register = $stmt->fetchObject(Caixa::class);
 
         if (!$register) {
@@ -199,15 +206,15 @@ class CaixaRepository extends SingletonInstance implements ICaixaRepository
             return null;
         }
 
-        if ($type === 'entrada' && $payment_form === 'dinheiro') {
+        if ($type === self::TYPE_INPUT && $payment_form === self::FORM_CASH) {
             $caixa->current_balance += $amount;
         }
 
-        if ($type === 'saida' && $payment_form === 'dinheiro') {
+        if ($type === self::TYPE_OUTPUT && $payment_form === self::FORM_CASH) {
             $caixa->current_balance -= $amount;
         }
 
-        if ($type === 'sangria' && $payment_form === 'dinheiro') {
+        if ($type === self::TYPE_BLOOD && $payment_form === self::FORM_CASH) {
             $caixa->current_balance -= $amount;
         }
 

@@ -12,6 +12,8 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
 {
     private const CLASS_NAME = Apartamento::class;
     private const TABLE = "apartamentos";
+    private const SITUATION_OCCUPIED = 'Ocupado';
+    private const IS_NOT_DELETED = 0;
     use FindTrait;
 
     public function __construct()
@@ -96,6 +98,10 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $conditions[] = 'a.active = :active';
             $bindings[':active'] = $params['active'];
         }
+
+        $conditions[] = 'is_deleted = :is_deleted';
+        $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
+
 
         if (!empty($conditions)) {
             $sql .= ' AND ' . implode(' AND ', $conditions);
@@ -241,5 +247,43 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
         ]);
 
         return $this->findById($id);
+    }
+
+    public function updateStatus(int $id, string $status)
+    {
+        if (is_null($id)) {
+            return null;
+        }
+
+        $apartment = $this->findById($id);
+
+        if (is_null($apartment)) {
+            return null;
+        }
+
+        $stmt = $this->conn->prepare("UPDATE apartamentos SET situation = :situation WHERE id = :id");
+
+        $stmt->execute([
+            ':id' => $id,
+            ':situation' => $status
+        ]);
+
+        return $this->findById($id);
+    }
+
+    public function countAll()
+    {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as count FROM apartamentos WHERE is_deleted = :is_deleted");
+        $stmt->execute([':is_deleted' => self::IS_NOT_DELETED]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
+    }
+
+    public function countOccupied()
+    {
+        $stmt = $this->conn->prepare("SELECT COUNT(*) as count FROM apartamentos WHERE is_deleted = :is_deleted AND situation = :situation");
+        $stmt->execute([':is_deleted' => self::IS_NOT_DELETED, ':situation' => self::SITUATION_OCCUPIED]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $result['count'] ?? 0;
     }
 }

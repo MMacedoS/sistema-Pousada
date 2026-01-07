@@ -43,7 +43,7 @@ class Venda
     public function update(array $data, Venda $venda): Venda
     {
         $venda->dt_sale = $data['dt_sale'] ?? $venda->dt_sale;
-        $venda->name = $data['name'] ?? $venda->name;
+        $venda->name = $data['sale_name'] ?? $venda->name;
         $venda->description = $data['description'] ?? $venda->description;
         $venda->amount_sale = $data['amount_sale'] ?? $venda->amount_sale;
         $venda->status = $data['status'] ?? $venda->status;

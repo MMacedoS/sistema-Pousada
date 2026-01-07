@@ -245,7 +245,7 @@ class ItemVendaRepository extends SingletonInstance implements IItemVendaReposit
             $stmt->execute([':venda_id' => $vendaId]);
 
             $result = $stmt->fetch(PDO::FETCH_OBJ);
-            return $result->total ?? 0;
+            return (float)$result->total ?? 0;
         } catch (\Exception $e) {
             LoggerHelper::logError("Erro ao calcular total da venda: " . $e->getMessage());
             return 0;

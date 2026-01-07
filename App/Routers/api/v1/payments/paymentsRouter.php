@@ -9,3 +9,4 @@ $router->create('DELETE', '/api/v1/payments/{uuid}', [$pagamentoController, 'des
 $router->create('GET', '/api/v1/sales/{venda_uuid}/payments', [$pagamentoController, 'getPaymentsByVenda'], $auth);
 $router->create('PATCH', '/api/v1/payments/{uuid}/cancel', [$pagamentoController, 'cancelPayment'], $auth);
 $router->create('GET', '/api/v1/payments/sales/{venda_uuid}/list', [$pagamentoController, 'getPaymentsByVenda'], $auth);
+$router->create('GET', '/api/v1/reservations/{reserva_uuid}/payments', [$pagamentoController, 'getPaymentsByReserva'], $auth);

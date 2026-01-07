@@ -2,7 +2,8 @@
 
 namespace App\Repositories\Contracts\Apartments;
 
-interface IApartamentoRepository {
+interface IApartamentoRepository
+{
 
     public function all(array $params = []);
 
@@ -19,4 +20,8 @@ interface IApartamentoRepository {
     public function findByUuid(string $uuid);
 
     public function findById(int $id);
+
+    public function countAll();
+
+    public function countOccupied();
 }

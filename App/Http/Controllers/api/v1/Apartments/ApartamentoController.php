@@ -8,6 +8,7 @@ use App\Http\Controllers\Traits\HasPermissions;
 use App\Http\Request\Request;
 use App\Repositories\Contracts\Apartments\IApartamentoRepository;
 use App\Transformers\Apartment\ApartmentTransformer;
+use App\Utils\LoggerHelper;
 use App\Utils\Paginator;
 use App\Utils\Validator;
 
@@ -34,7 +35,6 @@ class ApartamentoController extends Controller
         $paginator = new Paginator($apartamentos, $perPage, $currentPage);
         $paginatedApartamentos = $this->apartmentTransformer->transformCollection($paginator->getPaginatedItems());
 
-        // Adiciona dados estruturados da paginação
         $paginationData = [
             'current_page' => $paginator->currentPage(),
             'per_page' => $paginator->perPage(),
@@ -67,7 +67,6 @@ class ApartamentoController extends Controller
 
         if (!$validator->validate($rules)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->getErrors()
             ], 422);
@@ -77,7 +76,6 @@ class ApartamentoController extends Controller
 
         if (is_null($apartamento)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Failed to create apartment'
             ], 500);
         }
@@ -93,9 +91,8 @@ class ApartamentoController extends Controller
 
         if (is_null($apartamento)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Apartment not found'
-            ], 404);
+            ], 422);
         }
 
         return $this->responseJson($apartamento, 200);
@@ -120,7 +117,6 @@ class ApartamentoController extends Controller
 
         if (!$validator->validate($rules)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Validation failed',
                 'errors' => $validator->getErrors()
             ], 422);
@@ -130,7 +126,6 @@ class ApartamentoController extends Controller
 
         if (is_null($apartamento)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Failed to update apartment'
             ], 500);
         }
@@ -146,16 +141,14 @@ class ApartamentoController extends Controller
 
         if (is_null($apartamento)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Apartment not found'
-            ], 404);
+            ], 422);
         }
 
         $deleted = $this->apartamentoRepository->delete($apartamento->id);
 
         if (is_null($deleted)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Failed to delete apartment'
             ], 500);
         }
@@ -174,16 +167,14 @@ class ApartamentoController extends Controller
 
         if (is_null($apartamento)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Apartment not found'
-            ], 404);
+            ], 422);
         }
 
         $updatedApartment = $this->apartamentoRepository->changeActiveStatus($apartamento->id);
 
         if (is_null($updatedApartment)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'Failed to change apartment active status'
             ], 500);
         }
@@ -199,11 +190,27 @@ class ApartamentoController extends Controller
 
         if (empty($apartamentos)) {
             return $this->responseJson([
-                'status' => 'error',
                 'message' => 'No available apartments found'
-            ], 404);
+            ], 422);
         }
 
         return $this->responseJson($apartamentos, 200);
+    }
+
+    public function accommodationWithAllApartments(Request $request)
+    {
+        $this->checkPermission('apartments.view');
+
+        $apartamentos = $this->apartamentoRepository->all(['active' => 1]);
+
+        if (empty($apartamentos)) {
+            return $this->responseJson([
+                'message' => 'No available apartments found'
+            ], 422);
+        }
+
+        $apartaments = $this->apartmentTransformer->accommodationWithAllApartments($apartamentos);
+
+        return $this->responseJson($apartaments, 200);
     }
 }

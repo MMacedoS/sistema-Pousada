@@ -9,11 +9,18 @@ use App\Config\Router;
 use App\Http\Controllers\api\v1\Apartments\ApartamentoController;
 use App\Http\Controllers\api\v1\Cashbox\CaixaController;
 use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaController;
+use App\Http\Controllers\api\v1\Cashbox\TransacaoCaixaUsuarioController;
+use App\Http\Controllers\api\v1\Consumption\ConsumoController;
+use App\Http\Controllers\api\v1\Customer\ClienteController;
+use App\Http\Controllers\api\v1\Dashboard\DashboardController;
+use App\Http\Controllers\api\v1\Diaries\DiariaController;
 use App\Http\Controllers\api\v1\Employees\FuncionariosController;
+use App\Http\Controllers\api\v1\Financial\FinanceiroController;
 use App\Http\Controllers\api\v1\Payment\PagamentoController;
 use App\Http\Controllers\api\v1\Permission\PermissaoController;
 use App\Http\Controllers\api\v1\Product\ProdutoController;
 use App\Http\Controllers\api\v1\Profile\PerfilController;
+use App\Http\Controllers\api\v1\Reservation\ReservaController;
 use App\Http\Controllers\api\v1\Sale\ItemVendaController;
 use App\Http\Controllers\api\v1\Sale\VendaController;
 use App\Http\Controllers\api\v1\Settings\ConfiguracaoController;
@@ -36,9 +43,21 @@ $produtoController = $container->get(ProdutoController::class);
 $vendaController = $container->get(VendaController::class);
 $itemVendaController = $container->get(ItemVendaController::class);
 $pagamentoController = $container->get(PagamentoController::class);
+$transacaoCaixaUsuarioController = $container->get(TransacaoCaixaUsuarioController::class);
+$clienteController = $container->get(ClienteController::class);
+$reservaController = $container->get(ReservaController::class);
+$diariaController = $container->get(DiariaController::class);
+$consumoController = $container->get(ConsumoController::class);
+$dashboardController = $container->get(DashboardController::class);
+$financeiroController = $container->get(FinanceiroController::class);
 
 $router = new Router();
 $auth = new Auth();
+
+$router->create('GET', '/', [$tokenController, 'index'], null);
+
+// Rota pública para comprovante de reserva
+$router->create('GET', '/comprovante-reserva/{uuid}', [$reservaController, 'comprovante'], null);
 
 require_once __DIR__ . '/api/v1/token/tokenRouter.php';
 require_once __DIR__ . '/api/v1/apartments/apartmentsRouter.php';
@@ -50,5 +69,11 @@ require_once __DIR__ . '/api/v1/permission/permissionRouter.php';
 require_once __DIR__ . '/api/v1/products/productsRouter.php';
 require_once __DIR__ . '/api/v1/sales/salesRouter.php';
 require_once __DIR__ . '/api/v1/payments/paymentsRouter.php';
+require_once __DIR__ . '/api/v1/customer/customerRouter.php';
+require_once __DIR__ . '/api/v1/reservation/reservationRouter.php';
+require_once __DIR__ . '/api/v1/diaries/dailyRouter.php';
+require_once __DIR__ . '/api/v1/consumptions/consumptionRouter.php';
+require_once __DIR__ . '/api/v1/dashboard/dashboardRouter.php';
+require_once __DIR__ . '/api/v1/financial/financialRouter.php';
 
 return $router;

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Tempo de geração: 18/08/2025 às 11:55
+-- Tempo de geração: 22/08/2025 às 15:23
 -- Versão do servidor: 8.0.41
 -- Versão do PHP: 8.2.24
 
@@ -126,10 +126,7 @@ DELIMITER ;
 CREATE TABLE `clientes` (
   `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `phone` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
+  `pessoa_fisica_id` int NOT NULL,
   `job` varchar(30) DEFAULT NULL,
   `nationality` varchar(30) DEFAULT NULL,
   `doc` varchar(20) DEFAULT NULL,
@@ -139,7 +136,8 @@ CREATE TABLE `clientes` (
   `cnpj_company` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `phone_company` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `email_company` varchar(255) DEFAULT NULL,
-  `status` tinyint NOT NULL DEFAULT '1',
+  `active` tinyint NOT NULL DEFAULT '1',
+  `is_deleted` tinyint DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -310,7 +308,7 @@ CREATE TABLE `pagamentos` (
   `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
   `id_reserva` int DEFAULT NULL,
-  `type_payment` enum('Dinheiro','Cartão Crédito','Cartão Débito','Pix','Cortesia') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `type_payment` enum('cash','credit_card','debit_card','pix','transfer','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'cash',
   `payment_amount` decimal(10,2) NOT NULL,
   `dt_payment` date NOT NULL,
   `id_venda` int DEFAULT NULL,
@@ -338,7 +336,7 @@ INSERT INTO transacao_caixa SET
     id_usuario = NEW.id_usuario,
     canceled = 0; 
     
-IF NEW.type_payment='Dinheiro' THEN
+IF NEW.type_payment='cash' THEN
     UPDATE caixas SET current_balance = (current_balance + NEW.payment_amount) WHERE id = NEW.id_caixa;
 END IF;
 END
@@ -358,15 +356,15 @@ CREATE TRIGGER `trg_update_pagamentos` AFTER UPDATE ON `pagamentos` FOR EACH ROW
     WHERE reference_uuid = OLD.uuid AND origin = "pagamento"; 
 
     -- Caso o pagamento seja cancelado (status = 0) ou o tipo de pagamento tenha sido alterado de "Dinheiro" para outro
-    IF (NEW.status = 0 AND OLD.type_payment = 'Dinheiro') 
-       OR (NEW.status = 1 AND OLD.type_payment = 'Dinheiro' AND NEW.type_payment != 'Dinheiro') THEN
+    IF (NEW.status = 0 AND OLD.type_payment = 'cash') 
+       OR (NEW.status = 1 AND OLD.type_payment = 'cash' AND NEW.type_payment != 'cash') THEN
         UPDATE caixas 
         SET current_balance = current_balance - OLD.payment_amount 
         WHERE id = OLD.id_caixa;
     END IF;
 
     -- Caso o pagamento seja confirmado (status = 1) ou o tipo de pagamento tenha sido alterado de outro para "Dinheiro"
-    IF (NEW.status = 1 AND NEW.type_payment = 'Dinheiro' AND OLD.type_payment != 'Dinheiro') 
+    IF (NEW.status = 1 AND NEW.type_payment = 'cash' AND OLD.type_payment != 'cash') 
        OR (OLD.status = 0 AND NEW.status = 1 AND NEW.type_payment = 'Dinheiro') THEN
         UPDATE caixas 
         SET current_balance = current_balance + NEW.payment_amount
@@ -415,14 +413,14 @@ CREATE TABLE `permissao_as_usuario` (
 CREATE TABLE `pessoa_fisica` (
   `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `usuario_id` int NOT NULL,
+  `usuario_id` int DEFAULT NULL,
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `social_name` varchar(45) DEFAULT NULL,
   `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `address` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `birthday` date DEFAULT NULL,
   `active` tinyint NOT NULL DEFAULT '1',
-  `email` varchar(100) NOT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `doc` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `type_doc` enum('CPF','RG','PASSPORT','CNH') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'CPF',
   `gender` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
@@ -445,7 +443,7 @@ CREATE TABLE `produtos` (
   `price` decimal(10,2) DEFAULT NULL,
   `category` varchar(40) NOT NULL,
   `stock` int DEFAULT NULL,
-  `status` tinyint NOT NULL DEFAULT '1',
+  `active` tinyint NOT NULL DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `id_usuario` int DEFAULT NULL
@@ -460,12 +458,15 @@ CREATE TABLE `produtos` (
 CREATE TABLE `reservas` (
   `id` int NOT NULL,
   `uuid` char(36) NOT NULL,
-  `id_apartamento` int DEFAULT NULL,
+  `id_apartamento` int NOT NULL,
   `id_usuario` int DEFAULT NULL,
-  `dt_checkin` date DEFAULT NULL,
-  `dt_checkout` date DEFAULT NULL,
-  `status` enum('Reservada','Confirmada','Hospedada','Finalizada','Cancelada','Apagada') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'Reservada',
+  `dt_checkin` date NOT NULL,
+  `dt_checkout` date NOT NULL,
+  `situation` enum('Reservada','Confirmada','Hospedada','Finalizada','Cancelada','Apagada') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'Reservada',
   `amount` decimal(7,2) NOT NULL,
+  `type` enum('promocional','diaria','pacote','cortesia','permuta') NOT NULL,
+  `is_deleted` tinyint NOT NULL DEFAULT '0',
+  `obs` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -498,7 +499,7 @@ CREATE TABLE `transacao_caixa` (
   `origin` varchar(100) DEFAULT NULL,
   `reference_uuid` char(36) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
-  `payment_form` enum('Dinheiro','PIX','Cartão de Crédito','Cartão de Débito','Cortesia','Permuta','Transferência Bancária','Boleto') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `payment_form` enum('cash','credit_card','debit_card','pix','transfer','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'cash',
   `canceled` tinyint NOT NULL DEFAULT '0',
   `amount` decimal(10,2) NOT NULL,
   `id_usuario` int DEFAULT NULL,
@@ -540,7 +541,7 @@ CREATE TABLE `vendas` (
   `name` varchar(20) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL,
   `amount_sale` decimal(7,2) NOT NULL,
-  `status` tinyint NOT NULL DEFAULT '1',
+  `status` enum('Pendente','Finalizada','Cancelada','') DEFAULT 'Pendente',
   `id_reserva` int DEFAULT NULL,
   `id_usuario` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -580,7 +581,8 @@ ALTER TABLE `caixas`
 --
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `uuid` (`uuid`,`name`,`email`,`status`);
+  ADD KEY `uuid` (`uuid`,`active`),
+  ADD KEY `fk_clientes_pessoa_fisica` (`pessoa_fisica_id`);
 
 --
 -- Índices de tabela `configuracao`
@@ -687,7 +689,7 @@ ALTER TABLE `reservas`
   ADD PRIMARY KEY (`id`),
   ADD KEY `id_apartamento` (`id_apartamento`),
   ADD KEY `uuid` (`uuid`),
-  ADD KEY `status` (`status`),
+  ADD KEY `status` (`situation`),
   ADD KEY `dt_checkin` (`dt_checkin`,`dt_checkout`),
   ADD KEY `id_usuario` (`id_usuario`);
 
@@ -858,6 +860,12 @@ ALTER TABLE `vendas`
 ALTER TABLE `caixas`
   ADD CONSTRAINT `caixas_ibfk_1` FOREIGN KEY (`id_usuario_opened`) REFERENCES `usuarios` (`id`),
   ADD CONSTRAINT `caixas_ibfk_2` FOREIGN KEY (`id_usuario_closed`) REFERENCES `usuarios` (`id`);
+
+--
+-- Restrições para tabelas `clientes`
+--
+ALTER TABLE `clientes`
+  ADD CONSTRAINT `fk_clientes_pessoa_fisica` FOREIGN KEY (`pessoa_fisica_id`) REFERENCES `pessoa_fisica` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Restrições para tabelas `consumos`

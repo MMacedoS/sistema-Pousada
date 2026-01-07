@@ -13,6 +13,10 @@ use Monolog\Logger;
 class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCaixaRepository
 {
     private const CLASS_NAME = TransacaoCaixa::class;
+    private const FORM_CASH = 'cash';
+    private const TYPE_INPUT = 'entrada';
+    private const TYPE_OUTPUT = 'saida';
+    private const TYPE_BLOOD = 'sangria';
     private const TABLE = "transacao_caixa";
     private $caixaRepository;
 
@@ -158,17 +162,17 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
 
     private function paymentAffectsCashbox(string $paymentForm): bool
     {
-        $affects = strtolower($paymentForm) === 'dinheiro';
+        $affects = strtolower($paymentForm) === self::FORM_CASH;
         return $affects;
     }
 
     private function revertCashboxTransaction(int $caixaId, $transaction)
     {
-        $revertType = $transaction->type === 'entrada' ? 'saida' : 'entrada';
+        $revertType = $transaction->type === self::TYPE_INPUT ? self::TYPE_OUTPUT : self::TYPE_INPUT;
         $result = $this->caixaRepository->updateBalance(
             $caixaId,
             $revertType,
-            'dinheiro',
+            self::FORM_CASH,
             (float)$transaction->amount
         );
         return is_null($result);
@@ -179,7 +183,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
         $result = $this->caixaRepository->updateBalance(
             $caixaId,
             $transaction->type,
-            'dinheiro',
+            self::FORM_CASH,
             (float)$transaction->amount
         );
         return is_null($result);
@@ -204,7 +208,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $this->caixaRepository->updateBalance(
                 $caixaId,
                 $newType,
-                'dinheiro',
+                self::FORM_CASH,
                 $amountDifference
             );
         }
@@ -258,6 +262,11 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $bindings[':payment_form'] = $params['payment_form'];
         }
 
+        if (!empty($params['id_usuario'])) {
+            $sql .= " AND t.id_usuario = :id_usuario";
+            $bindings[':id_usuario'] = $params['id_usuario'];
+        }
+
         $sql .= " ORDER BY t.created_at DESC";
 
         $stmt = $this->conn->prepare($sql);
@@ -284,11 +293,11 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             $stmt->execute([':id' => $id]);
 
             if ($this->paymentAffectsCashbox($transacao->payment_form)) {
-                $revertType = $transacao->type === 'entrada' ? 'saida' : 'entrada';
+                $revertType = $transacao->type === self::TYPE_INPUT ? self::TYPE_OUTPUT : self::TYPE_INPUT;
                 $result = $this->caixaRepository->updateBalance(
                     (int)$transacao->caixa_id,
                     $revertType,
-                    "dinheiro",
+                    self::FORM_CASH,
                     (float)$transacao->amount
                 );
 
@@ -340,7 +349,7 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
         return $this->findById($id);
     }
 
-    public function findByCashboxIdAndType(int $caixaId, string $type, string $payment_form = 'Dinheiro')
+    public function findByCashboxIdAndType(int $caixaId, string $type, string $payment_form = self::FORM_CASH)
     {
         $stmt = $this->conn->prepare("
             SELECT * FROM transacao_caixa
@@ -350,6 +359,46 @@ class TransacaoCaixaRepository extends SingletonInstance implements ITransacaoCa
             ':caixa_id' => $caixaId,
             ':type' => $type,
             ':payment_form' => $payment_form
+        ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function transactionsByUserId(int $id_usuario)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE id_usuario = :id_usuario
+        ");
+        $stmt->execute([':id_usuario' => $id_usuario]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function findByPeriod(string $startDate, string $endDate)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE DATE(created_at) BETWEEN :start_date AND :end_date
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([
+            ':start_date' => $startDate,
+            ':end_date' => $endDate
+        ]);
+        return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+    }
+
+    public function findByPeriodAndType(string $startDate, string $endDate, string $type)
+    {
+        $stmt = $this->conn->prepare("
+            SELECT * FROM transacao_caixa
+            WHERE DATE(created_at) BETWEEN :start_date AND :end_date
+            AND type = :type
+            ORDER BY created_at DESC
+        ");
+        $stmt->execute([
+            ':start_date' => $startDate,
+            ':end_date' => $endDate,
+            ':type' => $type
         ]);
         return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
     }
