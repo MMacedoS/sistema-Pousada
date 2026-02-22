@@ -77,7 +77,13 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                     doc = :doc,
                     type_doc = :type_doc,
                     phone = :telefone,
-                    address = :endereco
+                    address = :endereco,
+                    street = :street,
+                    number = :number,
+                    neighborhood = :neighborhood,
+                    city = :city,
+                    state = :state,
+                    zipCode = :zipCode
                     "
             );
 
@@ -91,7 +97,13 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                 ':telefone' => $pessoa_fisica->phone,
                 ':type_doc' => $pessoa_fisica->type_doc,
                 ':endereco' => $pessoa_fisica->address,
-                ':doc' => $pessoa_fisica->doc
+                ':doc' => $pessoa_fisica->doc,
+                ':street' => $pessoa_fisica->street,
+                ':number' => $pessoa_fisica->number,
+                ':neighborhood' => $pessoa_fisica->neighborhood,
+                ':city' => $pessoa_fisica->city,
+                ':state' => $pessoa_fisica->state,
+                ':zipCode' => $pessoa_fisica->zipCode,
             ]);
 
             if (!$create) {
@@ -131,6 +143,12 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                     type_doc = :type_doc,
                     phone = :phone,
                     address = :address,
+                    street = :street,
+                    number = :number,
+                    neighborhood = :neighborhood,
+                    city = :city,
+                    state = :state,
+                    zipCode = :zipCode,
                     updated_at = NOW()
                 WHERE id = :id"
                 );
@@ -144,7 +162,13 @@ class PessoaFisicaRepository extends SingletonInstance implements IPessoaFisicaR
                 ':phone' => $pessoa_fisica->phone,
                 ':type_doc' => $pessoa_fisica->type_doc,
                 ':address' => $pessoa_fisica->address,
-                ':doc' => $pessoa_fisica->doc
+                ':doc' => $pessoa_fisica->doc,
+                ':street' => $pessoa_fisica->street,
+                ':number' => $pessoa_fisica->number,
+                ':neighborhood' => $pessoa_fisica->neighborhood,
+                ':city' => $pessoa_fisica->city,
+                ':state' => $pessoa_fisica->state,
+                ':zipCode' => $pessoa_fisica->zipCode,
             ]);
 
             if (!$updated) {

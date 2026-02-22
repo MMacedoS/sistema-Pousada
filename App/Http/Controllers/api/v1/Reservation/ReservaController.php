@@ -228,6 +228,7 @@ class ReservaController extends Controller
         $data['customer_id'] = $customer->id;
         $data['dt_checkin'] = $data['check_in'];
         $data['dt_checkout'] = $data['check_out'];
+        $data['situation'] = $data['status'];
         unset($data['apartment_id'], $data['check_in'], $data['check_out']);
 
         $reserva = $this->reservaRepository->create($data);
@@ -291,6 +292,7 @@ class ReservaController extends Controller
         $data['customer_id'] = $customer->id;
         $data['dt_checkin'] = $data['check_in'];
         $data['dt_checkout'] = $data['check_out'];
+        $data['situation'] = $data['status'];
         unset($data['apartment_id'], $data['check_in'], $data['check_out']);
 
         $reserva = $this->reservaRepository->findByUuid($uuid);
@@ -496,11 +498,37 @@ class ReservaController extends Controller
         $updatedReserva = $this->reservaRepository->checkOut($reserva->id, $this->authUserByApi());
 
         if (is_null($updatedReserva)) {
-            return $this->responseJson("Falha ao realizar check-out", 422);
+            return $this->responseJson("Falha ao realizar check-out. Verifique se todos os pagamentos foram realizados.", 422);
         }
 
         return $this->responseJson([
             'message' => 'Check-out realizado com sucesso',
+            'reservation' => $this->reservaTransformer->transform($updatedReserva),
+        ]);
+    }
+
+    public function confirm(Request $request, string $uuid)
+    {
+        $this->checkPermission('reservations.edit');
+
+        $reserva = $this->reservaRepository->findByUuid($uuid);
+
+        if (is_null($reserva)) {
+            return $this->responseJson("Reserva não encontrada", 422);
+        }
+
+        if ($reserva->situation === 'Confirmada') {
+            return $this->responseJson("Reserva já está confirmada", 422);
+        }
+
+        $updatedReserva = $this->reservaRepository->confirm($reserva->id, $this->authUserByApi());
+
+        if (is_null($updatedReserva)) {
+            return $this->responseJson("Falha ao confirmar reserva", 422);
+        }
+
+        return $this->responseJson([
+            'message' => 'Reserva confirmada com sucesso',
             'reservation' => $this->reservaTransformer->transform($updatedReserva),
         ]);
     }

@@ -9,6 +9,8 @@ interface IApartamentoRepository
 
     public function apartmentsAvailable(array $params = []);
 
+    public function allNotImpeded();
+
     public function create(array $data);
 
     public function update(array $data, int $id);

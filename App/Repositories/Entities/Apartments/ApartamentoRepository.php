@@ -13,6 +13,8 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
     private const CLASS_NAME = Apartamento::class;
     private const TABLE = "apartamentos";
     private const SITUATION_OCCUPIED = 'Ocupado';
+    private const SITUATION_IMPEDED = 'Impedido';
+    private const SITUATION_AVAILABLE = 'Disponivel';
     private const IS_NOT_DELETED = 0;
     use FindTrait;
 
@@ -44,6 +46,11 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $bindings[':active'] = $params['active'];
         }
 
+        if (isset($params['situation'])) {
+            $conditions[] = 'situation = :situation';
+            $bindings[':situation'] = $params['situation'];
+        }
+
         $conditions[] = 'is_deleted = :is_deleted';
         $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
 
@@ -61,6 +68,26 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
         } catch (\PDOException $e) {
 
+            throw new \Exception("Database query error: " . $e->getMessage());
+        }
+    }
+
+    public function allNotImpeded()
+    {
+        $sql = "SELECT * FROM apartamentos 
+                WHERE is_deleted = :is_deleted 
+                AND situation != :situation
+                ORDER BY created_at DESC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                ':is_deleted' => self::IS_NOT_DELETED,
+                ':situation' => self::SITUATION_IMPEDED
+            ]);
+
+            return $stmt->fetchAll(\PDO::FETCH_CLASS, self::CLASS_NAME);
+        } catch (\PDOException $e) {
             throw new \Exception("Database query error: " . $e->getMessage());
         }
     }
@@ -99,6 +126,8 @@ class ApartamentoRepository extends SingletonInstance implements IApartamentoRep
             $bindings[':active'] = $params['active'];
         }
 
+        $conditions[] = 'a.situation = :situation';
+        $bindings[':situation'] = self::SITUATION_AVAILABLE;
         $conditions[] = 'is_deleted = :is_deleted';
         $bindings[':is_deleted'] = $params['is_deleted'] ?? 0;
 

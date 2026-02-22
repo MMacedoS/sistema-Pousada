@@ -11,6 +11,8 @@ $router->create('POST', '/api/v1/reservations/{uuid}/check-in', [$reservaControl
 
 $router->create('POST', '/api/v1/reservations/{uuid}/check-out', [$reservaController, 'checkOut'], $auth);
 
+$router->create('POST', '/api/v1/reservations/{uuid}/confirm', [$reservaController, 'confirm'], $auth);
+
 $router->create('POST', '/api/v1/reservations/available', [$reservaController, 'available'], $auth);
 $router->create('PUT', '/api/v1/reservations/{uuid}/change-apartment', [$reservaController, 'changeApartment'], $auth);
 

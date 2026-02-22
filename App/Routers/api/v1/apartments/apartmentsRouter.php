@@ -1,6 +1,7 @@
 <?php
 
 $router->create('GET', '/api/v1/apartments', [$apartamentoController, 'index'], $auth);
+$router->create('GET', '/api/v1/apartments-by-status', [$apartamentoController, 'indexWithStatus'], $auth);
 $router->create('POST', '/api/v1/apartments', [$apartamentoController, 'store'], $auth);
 $router->create('PUT', '/api/v1/apartments/{id}', [$apartamentoController, 'update'], $auth);
 $router->create('DELETE', '/api/v1/apartments/{id}', [$apartamentoController, 'destroy'], $auth);

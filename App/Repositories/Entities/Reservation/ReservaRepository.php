@@ -10,6 +10,7 @@ use App\Repositories\Entities\Apartments\ApartamentoRepository;
 use App\Repositories\Entities\Daily\DiariaRepository;
 use App\Repositories\Entities\Reservation\ReservaHospedeRepository;
 use App\Repositories\Entities\Payment\PagamentoRepository;
+use App\Repositories\Entities\Consumption\ConsumoRepository;
 use App\Repositories\Traits\FindTrait;
 use App\Utils\LoggerHelper;
 use Monolog\Logger;
@@ -33,6 +34,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     private $diariaRepository;
     private $apartamentoRepository;
     private $pagamentoRepository;
+    private $consumoRepository;
 
     use FindTrait;
 
@@ -44,6 +46,7 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $this->diariaRepository = DiariaRepository::getInstance();
         $this->apartamentoRepository = ApartamentoRepository::getInstance();
         $this->pagamentoRepository = PagamentoRepository::getInstance();
+        $this->consumoRepository = ConsumoRepository::getInstance();
     }
 
     private function getCurrentDateWithTimezone(string $format = 'Y-m-d'): string
@@ -245,9 +248,13 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         }
 
         if ($reserva->situation === self::SITUATION_HOSTED) {
+            // Primeiro, cancela/remove todas as diárias antigas da reserva
+            $this->diariaRepository->updateStatusByReservaId($reserva->id, self::SITUATION_CANCELED);
+            $this->diariaRepository->deleteByReservaId($reserva->id);
+
+            // Depois, cria as novas diárias com base nas datas atualizadas
             $checkin = $this->ensureDateAsString($reserva->dt_checkin);
             $checkout = $this->ensureDateAsString($reserva->dt_checkout);
-
             $this->diariaRepository->createAllByBetweenDate($reserva, $checkin, $checkout);
         }
 
@@ -296,12 +303,12 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         LEFT JOIN reservas r 
             ON a.id = r.id_apartamento
             AND (
-                DATE(r.dt_checkin) <= DATE(:end_date)
+                DATE(r.dt_checkin) < DATE(:end_date)
                 AND DATE(r.dt_checkout) > DATE(:start_date)
                 AND (
                     (r.situation IN (:reserved, :confirmed) AND r.is_deleted = :is_deleted)
                     OR
-                    (r.situation = :hosted AND r.is_deleted = :is_deleted AND DATE(r.dt_checkout) > DATE(:start_date))
+                    (r.situation = :hosted AND r.is_deleted = :is_deleted)
                 )
             )
         WHERE r.id_apartamento IS NULL AND a.situation != :situation_none";
@@ -547,15 +554,6 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             return false;
         }
 
-        // Verifica se a data de check-in não é anterior ao dia atual
-        $today = $this->getCurrentDateWithTimezone('Y-m-d');
-        $checkinDate = $this->ensureDateAsString($reserva->dt_checkin);
-
-        if ($checkinDate < $today) {
-            LoggerHelper::logError("Data de check-in está no passado: {$checkinDate} < {$today}");
-            return false;
-        }
-
         return true;
     }
 
@@ -579,8 +577,39 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
     {
         $checkin = $this->ensureDateAsString($reserva->dt_checkin);
         $checkout = $this->ensureDateAsString($reserva->dt_checkout);
-
         $this->diariaRepository->createAllByBetweenDate($reserva, $checkin, $checkout);
+    }
+
+    public function confirm(string $id, string $userId)
+    {
+        $reserva = $this->findById($id);
+
+        if (is_null($reserva)) {
+            return null;
+        }
+
+        if ($reserva->situation === 'Confirmada') {
+            return null;
+        }
+
+        try {
+            $stmt = $this->conn->prepare("
+                UPDATE reservas 
+                SET situation = 'Confirmada',
+                    id_usuario = :user_id,
+                    updated_at = NOW()
+                WHERE id = :id
+            ");
+
+            $stmt->bindValue(':id', $reserva->id);
+            $stmt->bindValue(':user_id', $userId);
+            $stmt->execute();
+
+            return $this->findById($reserva->id);
+        } catch (\Exception $e) {
+            LoggerHelper::logError("Erro ao confirmar reserva {$reserva->id}: " . $e->getMessage());
+            return null;
+        }
     }
 
     public function checkout(string $id, string $userId)
@@ -588,6 +617,11 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
         $reserva = $this->findById($id);
         if (is_null($reserva)) return null;
         if ($reserva->situation !== self::SITUATION_HOSTED) return null;
+
+        if (!$this->isPaymentComplete($reserva->id)) {
+            LoggerHelper::logError("Checkout bloqueado: pagamento incompleto para reserva {$reserva->id}");
+            return null;
+        }
 
         try {
             $this->conn->beginTransaction();
@@ -614,6 +648,16 @@ class ReservaRepository extends SingletonInstance implements IReservaRepository
             $this->conn->rollBack();
             return null;
         }
+    }
+
+    private function isPaymentComplete(int $reservaId): bool
+    {
+        $totalDiarias = $this->diariaRepository->totalAmountByReservaId($reservaId);
+        $totalConsumos = $this->consumoRepository->totalConsumptionsByReservaId($reservaId);
+        $totalPago = $this->pagamentoRepository->paidAmountByReservaId($reservaId);
+        $totalDevido = $totalDiarias + $totalConsumos;
+
+        return $totalPago >= $totalDevido;
     }
 
     public function getCheckinToday(string $date): array

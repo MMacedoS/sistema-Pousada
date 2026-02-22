@@ -94,9 +94,10 @@ class PagamentoController extends Controller
         }
 
         $cashbox = $this->caixaRepository->findByUuid($data['cashbox_id'] ?? null);
-        if ($cashbox) {
-            $data['id_caixa'] = $cashbox->id;
+        if (!$cashbox) {
+            return $this->responseJson("Caixa não encontrado", 422);
         }
+        $data['id_caixa'] = $cashbox->id;
 
         $userId = $this->authUserByApi();
         $data['id_usuario'] = $userId;

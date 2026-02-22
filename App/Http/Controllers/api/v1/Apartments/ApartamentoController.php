@@ -182,6 +182,17 @@ class ApartamentoController extends Controller
         return $this->responseJson($updatedApartment, 200);
     }
 
+    public function indexWithStatus(Request $request)
+    {
+        $this->checkPermission('apartments.view');
+
+        $apartamentos = $this->apartamentoRepository->allNotImpeded();
+
+        $apartmentTransformered = $this->apartmentTransformer->transformCollection($apartamentos);
+
+        return $this->responseJson($apartmentTransformered, 200);
+    }
+
     public function available(Request $request)
     {
         $this->checkPermission('apartments.view');

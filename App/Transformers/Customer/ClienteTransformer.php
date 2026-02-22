@@ -9,12 +9,21 @@ class ClienteTransformer
 {
     public function transform(Cliente $data): array
     {
+        $addressData = $this->parseAddress($data);
+
         return [
             'id' => $data->uuid ?? null,
+            'code' => $data->id ?? null,
             'name' => $this->prepareName($data),
             'email' => $this->prepareEmail($data),
             'phone' => $this->preparePhone($data),
-            'address' => $this->prepareAddress($data),
+            'cpf' => $this->prepareDoc($data),
+            'street' => $addressData['street'],
+            'number' => $addressData['number'],
+            'neighborhood' => $addressData['neighborhood'],
+            'city' => $addressData['city'],
+            'state' => $addressData['state'],
+            'zipCode' => $addressData['zipCode'],
             'birthday' => $this->prepareBirthdate($data),
             'pessoa_fisica_id' => $data->pessoa_fisica_id ?? null,
             'nationality' => $data->nationality ?? null,
@@ -58,11 +67,27 @@ class ClienteTransformer
         return $person->phone ?? null;
     }
 
-    private function prepareAddress(Cliente $cliente): ?string
+    private function prepareDoc(Cliente $cliente): ?string
     {
         $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
         $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
-        return $person->address ?? null;
+        return $person->doc ?? null;
+    }
+
+    private function parseAddress(Cliente $cliente): array
+    {
+        $pessoaFisicaRepository = PessoaFisicaRepository::getInstance();
+        $person = $pessoaFisicaRepository->findById($cliente->pessoa_fisica_id);
+
+        // Se os campos separados já existem no banco, usa eles diretamente
+        return [
+            'street' => $person->street ?? null,
+            'number' => $person->number ?? null,
+            'neighborhood' => $person->neighborhood ?? null,
+            'city' => $person->city ?? null,
+            'state' => $person->state ?? null,
+            'zipCode' => $person->zipCode ?? null,
+        ];
     }
 
     private function prepareBirthdate(Cliente $cliente): ?string
